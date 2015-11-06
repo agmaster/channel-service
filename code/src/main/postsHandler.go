@@ -31,7 +31,7 @@ func CreateIndex(post Post) {
 	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
 
 	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetURL("http://127.0.0.1:9200"), elastic.SetSniff(false))
 	if err != nil {
 		// Handle error
 		panic(err)
@@ -45,7 +45,7 @@ func CreateIndex(post Post) {
 
 	if !exists {
 		// Create a new index.
-		createIndex, err := client.CreateIndex("postIndex").Do()
+		createIndex, err := client.CreateIndex("postindex").Do()
 		if err != nil {
 			panic(err)
 		}
@@ -119,14 +119,14 @@ func SearchIndexWithTermQuery() (post Post) {
 	// }
 	//
 
-	termQuery := elastic.NewTermQuery("name", "boil")
+	termQuery := elastic.NewTermQuery("user-id", 101)
 	searchResult, err := client.Search().
-		Index("postindex"). // search in index "postindex"
-		Query(&termQuery).  // specify the query
-		Sort("name", true). // sort by "name" field, ascending
-		From(0).Size(10).   // take documents 0-9
-		Pretty(true).       // pretty print request and response JSON
-		Do()                // execute
+		Index("postindex").    // search in index "postindex"
+		Query(&termQuery).     // specify the query
+		Sort("user-id", true). // sort by "name" field, ascending
+		From(0).Size(10).      // take documents 0-9
+		Pretty(true).          // pretty print request and response JSON
+		Do()                   // execute
 	if err != nil {
 		panic(err)
 	}
@@ -166,16 +166,20 @@ func (uc PostController) GetPost(w http.ResponseWriter, r *http.Request, p httpr
 	}
 
 	// Grab id
-	oid := bson.ObjectIdHex(id)
+	//oid := bson.ObjectIdHex(id)
 
 	// Stub post
 	u := Post{}
 
 	// Fetch post
-	if err := uc.session.DB("post_message_service").C("posts").FindId(oid).One(&u); err != nil {
+	/*if err := uc.session.DB("post_message_service").C("posts").FindId(oid).One(&u); err != nil {
 		w.WriteHeader(404)
 		return
-	}
+	}*/
+
+	// Fetch post from Elasticsearch
+	u = SearchIndexWithTermQuery()
+	fmt.Println(u)
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
@@ -202,6 +206,11 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
+
+	// Write the post to Elasticsearch
+	//product1 := models.Product{Name : "peanuts", Description: "good food for afternoon", Permalink: "www.google.com"}
+	fmt.Printf("\nInsert Post user-id : %d , type: %s, active : %t\n", u.UserId, u.Type, u.Active)
+	CreateIndex(u)
 
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
