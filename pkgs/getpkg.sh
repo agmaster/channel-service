@@ -21,12 +21,12 @@ if [ ! -d src ]; then
 fi
 
 
-go get -u -v github.com/lib/pq
-go get -u -v github.com/go-sql-driver/mysql
-go get -u -v github.com/gorilla/mux
-go get -u -v github.com/gorilla/sessions
-go get -u -v github.com/robfig/cron
-go get -u -v github.com/Sirupsen/logrus
+# go get -u -v github.com/lib/pq
+# go get -u -v github.com/go-sql-driver/mysql
+# go get -u -v github.com/gorilla/mux
+# go get -u -v github.com/gorilla/sessions
+# go get -u -v github.com/robfig/cron
+# go get -u -v github.com/Sirupsen/logrus
 go get -u -v github.com/julienschmidt/httprouter
 go get -u -v gopkg.in/mgo.v2
 go get -u -v gopkg.in/mgo.v2/bson

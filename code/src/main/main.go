@@ -29,6 +29,26 @@ func main() {
 
 }
 
+
+// getSession creates a new mongo session and panics if connection error occurs
+func getSession() *mgo.Session {
+	// Connect to our local mongo
+	s, err := mgo.Dial("mongodb://localhost")
+
+	// Check if connection error, is mongo running?
+	if err != nil {
+		panic(err)
+	}
+
+	// Deliver session
+	return s
+}
+
+// Reference: 1. http://stevenwhite.com/building-a-rest-service-with-golang-3/
+//            2. https://github.com/swhite24/go-rest-tutorial/blob/master/server.go
+
+// test cases:
+
 /*   Insert a new post
  curl -XPOST -H 'Content-Type: application/json' -d '{"user-id": 101, "type": "text", "content": "Hello World!"}' http://127.0.0.1:3000/v1/posts
 Result: {"id":"563aa288d1261946cb000001","type":"text","content":"Hello World!","user-id":101}
@@ -47,19 +67,3 @@ Result : {"id":"563ab9e7d126195066000001","name":"peanuts","description":"Honey 
 curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/products/563ab9e7d126195066000001
 
 */
-// getSession creates a new mongo session and panics if connection error occurs
-func getSession() *mgo.Session {
-	// Connect to our local mongo
-	s, err := mgo.Dial("mongodb://localhost")
-
-	// Check if connection error, is mongo running?
-	if err != nil {
-		panic(err)
-	}
-
-	// Deliver session
-	return s
-}
-
-// Reference: 1. http://stevenwhite.com/building-a-rest-service-with-golang-3/
-//            2. https://github.com/swhite24/go-rest-tutorial/blob/master/server.go
