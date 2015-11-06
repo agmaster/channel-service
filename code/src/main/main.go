@@ -29,7 +29,6 @@ func main() {
 
 }
 
-
 // getSession creates a new mongo session and panics if connection error occurs
 func getSession() *mgo.Session {
 	// Connect to our local mongo
