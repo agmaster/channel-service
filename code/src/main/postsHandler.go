@@ -38,7 +38,7 @@ func CreateIndex(post Post) {
 	}
 
 	// Use the IndexExists service to check if a specified index exists.
-	exists, err := client.IndexExists("postindex").Do()
+	exists, err := client.IndexExists("postindex").Do() // index should be in lower case
 	if err != nil {
 		panic(err)
 	}
@@ -188,6 +188,41 @@ func (uc PostController) GetPost(w http.ResponseWriter, r *http.Request, p httpr
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
+}
+
+// Get total count of the posts
+//router.GET("/v1/posts/count", handler.GetPostCount)
+func (uc PostController) GetPostCount(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+
+	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+
+	// Obtain a client
+	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	if err != nil {
+		panic(err)
+	}
+
+	// Count documents
+	//count, err := client.Count("postindex").Type("text").Do()
+	count, err := client.Count("postindex").Do()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if count == 0 {
+		w.WriteHeader(404)
+		return
+	}
+
+	// Write content-type, statuscode, payload
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	fmt.Fprintf(w, "Found a total of %d posts\n", count)
+}
+
+// handler.GetPostWithQuery
+func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+
 }
 
 // CreatePost creates a new post resource
