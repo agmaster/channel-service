@@ -20,7 +20,7 @@ func main() {
 
 	// Get a post resource with query string
 	// GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
-	router.GET("/v1/posts[?limit=xx&offset=xx&q=xx]", handler.GetPostWithQuery)
+	router.GET("/v1/posts", handler.GetPostWithQuery)
 	// Create a new post
 	router.POST("/v1/posts", handler.CreatePost)
 
