@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+    "strings"
+    "net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
@@ -97,13 +99,11 @@ func SearchIndexWithId(id string) {
 	if get1.Found {
 		//post = get1.(Post)
 		fmt.Printf("Got document %s in verion %d from index %s \n", get1.Id, get1.Version, get1.Index)
-
 	}
-
 }
 
 // Search with a term query in Elasticsearch
-func SearchIndexWithTermQuery() (post Post) {
+func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post) {
 	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
 
 	// Obtain a client. You can provide your own HTTP client here.
@@ -112,14 +112,26 @@ func SearchIndexWithTermQuery() (post Post) {
 		// Handle error
 		panic(err)
 	}
-
-	// q := ""
-	// if (q != "") {  //  GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
-	//      termQuery = elastic.NewTermQuery("name", q)
-	// }
-	//
-
+    
+    // if limit != "" {
+    //     query.limit = limit
+    // }
+    //
+    // if offset != "" {
+    //     query.offset = offset
+    // }
+    //
+    // if  q != "" {
+    //     query.q = q
+    // }
+    
 	termQuery := elastic.NewTermQuery("user-id", 101)
+
+	if q != "" { //  GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
+		fmt.Printf(" q = %s", q)
+		termQuery = elastic.NewTermQuery("user-id",q)
+	}
+
 	searchResult, err := client.Search().
 		Index("postindex").    // search in index "postindex"
 		Query(&termQuery).     // specify the query
@@ -154,41 +166,98 @@ func SearchIndexWithTermQuery() (post Post) {
 	return post
 }
 
-// GetPost retrieves an individual post resource
-func (uc PostController) GetPost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Grab id
-	id := p.ByName("id")
 
-	// Verify id is ObjectId, otherwise bail
-	if !bson.IsObjectIdHex(id) {
-		w.WriteHeader(404)
-		return
+func convertQueryStr(q string) (key string, val string) {
+	queryStr := strings.SplitN("user-id=101", "=", 2)
+	key = queryStr[0]
+	val = queryStr[1]
+    
+	fmt.Printf("key=%s, val=%s", key, val)
+    
+    return key, val
+}
+
+/*
+func TestSearchSourceInnerHits(t *testing.T) {
+	matchAllQ := NewMatchAllQuery()
+	builder := NewSearchSource().Query(matchAllQ).
+		InnerHit("comments", NewInnerHit().Type("comment").Query(NewMatchQuery("user", "olivere"))).
+		InnerHit("views", NewInnerHit().Path("view"))
+	data, err := json.Marshal(builder.Source())
+	if err != nil {
+		t.Fatalf("marshaling to JSON failed: %v", err)
 	}
+	got := string(data)
+	expected := `{"inner_hits":{"comments":{"type":{"comment":{"query":{"match":{"user":{"query":"olivere"}}}}}},"views":{"path":{"view":{}}}},"query":{"match_all":{}}}`
+	if got != expected {
+		t.Errorf("expected\n%s\n,got:\n%s", expected, got)
+	}
+}
 
-	// Grab id
-	//oid := bson.ObjectIdHex(id)
+*/
+
+// GetPost retrieves an individual post resource
+// handler.GetPostWithQuery
+func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+    testIndexName := "postindex"
+
+	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+
+	// Obtain a client. You can provide your own HTTP client here.
+	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	if err != nil {
+		panic(err)
+	}
+    
+    q := "user-id"
+    queryForm, err := url.ParseQuery(r.URL.RawQuery)
+    if err == nil && len(queryForm["q"]) > 0 {
+        fmt.Fprintln(w, queryForm["q"])
+         q =  queryForm["q"][0]
+    }
+     
+     fmt.Printf("q = %s ", q)
+  
+ 	//queryStr := strings.SplitN("user-id=101", "=", 2)
+    // curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts?q="user-id"=201
+    queryStr := strings.SplitN(q, "=", 2)
+ 	key := queryStr[0]
+ 	val := queryStr[1]
+
+	// Verify q is a valid query string, otherwise bail
 
 	// Stub post
-	u := Post{}
+	// u := Post{}
 
-	// Fetch post
-	/*if err := uc.session.DB("post_message_service").C("posts").FindId(oid).One(&u); err != nil {
-		w.WriteHeader(404)
-		return
-	}*/
-
-	// Fetch post from Elasticsearch
-	u = SearchIndexWithTermQuery()
-	fmt.Println(u)
-
+    // Fetch post from Elasticsearch
+    // Match all should return all documents
+    	//all := elastic.NewMatchAllQuery(convertQueryStr(q))
+        //termQuery = elastic.NewMatchQuery("user", "olivere")
+        termQuery := elastic.NewMatchQuery(key, val)
+    	searchResult, err := client.Search().
+    		Index(testIndexName).
+    		Query(&termQuery).
+    		//Suggester(ts).
+    		Do()
+    	if err != nil {
+    		log.Fatal(err)
+    	}
+    
 	// Marshal provided interface into JSON structure
-	uj, _ := json.Marshal(u)
+	uj, _ := json.Marshal(searchResult)
 
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
 }
+
+// Fetch post
+/*if err := uc.session.DB("post_message_service").C("posts").FindId(oid).One(&u); err != nil {
+	w.WriteHeader(404)
+	return
+}*/
+
 
 // Get total count of the posts
 //router.GET("/v1/posts/count", handler.GetPostCount)
@@ -218,11 +287,6 @@ func (uc PostController) GetPostCount(w http.ResponseWriter, r *http.Request, p 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "Found a total of %d posts\n", count)
-}
-
-// handler.GetPostWithQuery
-func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-
 }
 
 // CreatePost creates a new post resource
