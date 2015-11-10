@@ -10,12 +10,15 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+var log = Logger.NewLogger(10000)
+var logFileName = `{"filename":"channel-service.log"}`
+
 func main() {
 
     // Initialize log variable (10000 is the cache size)
    log := Logger.NewLogger(10000) 
    //log.SetLogger("console", `{"level":1}`)
-   log.SetLogger("file", `{"filename":"channel-service.log"}`)
+   log.SetLogger("file", logFileName)
 
     
 	// Instantiate a new router
@@ -35,15 +38,21 @@ func main() {
 
 	// Remove an existing post
 	router.DELETE("/v1/posts/:id", handler.RemovePost)
+    
+    // Get a CommentController instance
+    commentHandler := NewCommentController(getSession())
+    
+    // Create a new comment for a post
+    router.POST("/v1/posts/:post-id/comments", commentHandler.CreateComment)
+    
+    // Get :/v1/posts/:post-d/comments
+    router.GET("/v1/posts/:post-d/comments", commentHandler.GetComment)
 
 	// Fire up the server
     log.Trace("start web service on 127.0.0.1:3000")
-	http.ListenAndServe("127.0.0.1:3000", router)
     
- 
-
-
-
+    
+	http.ListenAndServe("127.0.0.1:3000", router)
 }
 
 // getSession creates a new mongo session and panics if connection error occurs
