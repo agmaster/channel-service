@@ -3,19 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-
 	"net/http"
-
-	"reflect"
-    "strings"
-    "net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"gopkg.in/olivere/elastic.v2"
-    
-    Logger "github.com/astaxie/beego/logs"
 )
 
 type (
@@ -24,9 +16,6 @@ type (
 		session *mgo.Session
 	}
 )
-var log = Logger.NewLogger(10000)
-var logFileName = `{"filename":"channel-service.log"}`
-
 
 // NewCommentController provides a reference to a CommentController with provided mongo session
 func NewCommentController(s *mgo.Session) *CommentController {
@@ -48,8 +37,11 @@ func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p
 
 	// Grab id
 	oid := bson.ObjectIdHex(id)
+    
     log.SetLogger("file", logFileName)
     log.Trace("GetCommentWithQuery: retrieves an individual comment resource")
+    
+    u := Comment {}
    
     // Fetch comment
     if err := uc.session.DB("channel_service").C("comments").FindId(oid).One(&u); err != nil {
@@ -83,10 +75,6 @@ func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
-
-	// Write the comment to Elasticsearch
-	// log.Trace("\nInsert Comment user-id : %d , type: %s, active : %t\n", u.UserId, u.Type, u.Active)
-	CreateIndex(u)
 
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")

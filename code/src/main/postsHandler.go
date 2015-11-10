@@ -14,8 +14,6 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/olivere/elastic.v2"
-    
-    Logger "github.com/astaxie/beego/logs"
 )
 
 type (
@@ -24,9 +22,6 @@ type (
 		session *mgo.Session
 	}
 )
-var log = Logger.NewLogger(10000)
-var logFileName = `{"filename":"channel-service.log"}`
-
 
 // NewPostController provides a reference to a PostController with provided mongo session
 func NewPostController(s *mgo.Session) *PostController {

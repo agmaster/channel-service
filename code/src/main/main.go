@@ -10,12 +10,15 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+var log = Logger.NewLogger(10000)
+var logFileName = `{"filename":"channel-service.log"}`
+
 func main() {
 
     // Initialize log variable (10000 is the cache size)
    log := Logger.NewLogger(10000) 
    //log.SetLogger("console", `{"level":1}`)
-   log.SetLogger("file", `{"filename":"channel-service.log"}`)
+   log.SetLogger("file", logFileName)
 
     
 	// Instantiate a new router
