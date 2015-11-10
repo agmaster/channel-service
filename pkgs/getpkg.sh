@@ -28,9 +28,11 @@ fi
 # go get -u -v github.com/robfig/cron
 # go get -u -v github.com/Sirupsen/logrus
 go get -u -v github.com/julienschmidt/httprouter
+go get -u -v github.com/astaxie/beego/logs
 go get -u -v gopkg.in/mgo.v2
 go get -u -v gopkg.in/mgo.v2/bson
 go get -u -v gopkg.in/olivere/elastic.v2
+
 
 export GOPATH="$OLDGOPATH"
 export PATH="$OLDPATH"
