@@ -1,14 +1,23 @@
 package main
 
 import (
-	"net/http"
+	
+    "net/http"
 
+    //"github.com/2vive/go-lib/log"
+    Logger "github.com/astaxie/beego/logs"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 )
 
 func main() {
 
+    // Initialize log variable (10000 is the cache size)
+   log := Logger.NewLogger(10000) 
+   //log.SetLogger("console", `{"level":1}`)
+   log.SetLogger("file", `{"filename":"channel-service.log"}`)
+
+    
 	// Instantiate a new router
 	router := httprouter.New()
 
@@ -28,7 +37,12 @@ func main() {
 	router.DELETE("/v1/posts/:id", handler.RemovePost)
 
 	// Fire up the server
+    log.Trace("start web service on 127.0.0.1:3000")
 	http.ListenAndServe("127.0.0.1:3000", router)
+    
+ 
+
+
 
 }
 

@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+
 	"net/http"
-	"os"
+
 	"reflect"
     "strings"
     "net/url"
@@ -14,6 +14,8 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"gopkg.in/olivere/elastic.v2"
+    
+    Logger "github.com/astaxie/beego/logs"
 )
 
 type (
@@ -22,6 +24,9 @@ type (
 		session *mgo.Session
 	}
 )
+var log = Logger.NewLogger(10000)
+var logFileName = `{"filename":"channel-service.log"}`
+
 
 // NewPostController provides a reference to a PostController with provided mongo session
 func NewPostController(s *mgo.Session) *PostController {
@@ -30,29 +35,31 @@ func NewPostController(s *mgo.Session) *PostController {
 
 // Create a new Index in Elasticsearch
 func CreateIndex(post Post) {
-	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+  
+	log.Trace("Create a new Index in Elasticsearch")
+    
 
 	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetURL("http://127.0.0.1:9200"), elastic.SetSniff(false))
+	client, err := elastic.NewClient( elastic.SetURL("http://127.0.0.1:9200"), elastic.SetSniff(false))
 	if err != nil {
 		// Handle error
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 	// Use the IndexExists service to check if a specified index exists.
 	exists, err := client.IndexExists("postindex").Do() // index should be in lower case
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 	if !exists {
 		// Create a new index.
 		createIndex, err := client.CreateIndex("postindex").Do()
 		if err != nil {
-			panic(err)
+			log.Error("err : %s", err)
 		}
 		if !createIndex.Acknowledged {
-			fmt.Println("Not ackowledged")
+			log.Trace("Not ackowledged")
 		}
 	}
 
@@ -65,26 +72,26 @@ func CreateIndex(post Post) {
 		Do()
 
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
-	fmt.Printf("Indexed post %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
+	log.Trace("Indexed post %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
 
 	// Flush to make sure the documents got written.
 	_, err = client.Flush().Index("postindex").Do()
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 }
 
 func SearchIndexWithId(id string) {
-	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+    log.SetLogger("file", logFileName)
 
 	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	client, err := elastic.NewClient( elastic.SetSniff(false))
 	if err != nil {
 		// Handle error
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 	get1, err := client.Get().
@@ -94,23 +101,24 @@ func SearchIndexWithId(id string) {
 		Do()
 
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
 	if get1.Found {
 		//post = get1.(Post)
-		fmt.Printf("Got document %s in verion %d from index %s \n", get1.Id, get1.Version, get1.Index)
+		log.Trace("Got document %s in verion %d from index %s \n", get1.Id, get1.Version, get1.Index)
 	}
 }
 
 // Search with a term query in Elasticsearch
 func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post) {
-	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+	log.SetLogger("file", logFileName)
+    log.Trace("Search with a term query in Elasticsearch")
 
 	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	client, err := elastic.NewClient( elastic.SetSniff(false))
 	if err != nil {
 		// Handle error
-		panic(err)
+		log.Error("err : %s", err)
 	}
     
     // if limit != "" {
@@ -128,7 +136,7 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 	termQuery := elastic.NewTermQuery("user-id", 101)
 
 	if q != "" { //  GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
-		fmt.Printf(" q = %s", q)
+		log.Trace(" q = %s", q)
 		termQuery = elastic.NewTermQuery("user-id",q)
 	}
 
@@ -140,27 +148,27 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 		Pretty(true).          // pretty print request and response JSON
 		Do()                   // execute
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 	// searchResult is of type SearchResult and returns hits, suggestions,
 	// and all kinds of other information from Elasticsearch.
-	fmt.Printf("Query took %d milliseconds\n", searchResult.TookInMillis)
+	log.Trace("Query took %d milliseconds\n", searchResult.TookInMillis)
 
 	// Each is a convenience function that iterates over hits in a search result.
 	var ttyp Post
 	if searchResult.Hits != nil {
 		// TotalHits is another convenience function that works even when something goes wrong.
-		// fmt.Printf("Found a total of %d posts\n", searchResult.TotalHits())
+		// log.Trace("Found a total of %d posts\n", searchResult.TotalHits())
 		for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 			t := item.(Post)
 
-			fmt.Printf("Post Name:  %s,  Type: %s, Active: %s\n", t.UserId, t.Type, t.Active)
+			log.Trace("Post Name:  %s,  Type: %s, Active: %s\n", t.UserId, t.Type, t.Active)
 			post = t
 		}
 	} else {
 		// Not hits
-		fmt.Print("Found no posts\n")
+		log.Trace("Found no posts\n")
 	}
 
 	return post
@@ -168,11 +176,12 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 
 
 func convertQueryStr(q string) (key string, val string) {
+    log.SetLogger("file", logFileName)
 	queryStr := strings.SplitN("user-id=101", "=", 2)
 	key = queryStr[0]
 	val = queryStr[1]
     
-	fmt.Printf("key=%s, val=%s", key, val)
+	log.Trace("key=%s, val=%s", key, val)
     
     return key, val
 }
@@ -199,14 +208,14 @@ func TestSearchSourceInnerHits(t *testing.T) {
 // GetPost retrieves an individual post resource
 // handler.GetPostWithQuery
 func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+    log.SetLogger("file", logFileName)
+    log.Trace("GetPostWithQuery: retrieves an individual post resource")
     testIndexName := "postindex"
 
-	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
-
 	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	client, err := elastic.NewClient( elastic.SetSniff(false))
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
     
     q := "user-id"
@@ -216,7 +225,7 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
          q =  queryForm["q"][0]
     }
      
-     fmt.Printf("q = %s ", q)
+     log.Trace("q = %s ", q)
   
  	//queryStr := strings.SplitN("user-id=101", "=", 2)
     // curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts?q="user-id"=201
@@ -240,7 +249,7 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
     		//Suggester(ts).
     		Do()
     	if err != nil {
-    		log.Fatal(err)
+    		log.Error("err : %s", err)
     	}
     
 	// Marshal provided interface into JSON structure
@@ -260,37 +269,41 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 
 
 // Get total count of the posts
-//router.GET("/v1/posts/count", handler.GetPostCount)
+// GET("/v1/posts/count", handler.GetPostCount)
 func (uc PostController) GetPostCount(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
-	errorlog := log.New(os.Stdout, "APP ", log.LstdFlags)
+	log.SetLogger("file", logFileName)
+    log.Trace("Get total count of the posts")
 
 	// Obtain a client
-	client, err := elastic.NewClient(elastic.SetErrorLog(errorlog), elastic.SetSniff(false))
+	client, err := elastic.NewClient( elastic.SetSniff(false))
 	if err != nil {
-		panic(err)
+		log.Error("err : %s", err)
 	}
 
 	// Count documents
 	//count, err := client.Count("postindex").Type("text").Do()
 	count, err := client.Count("postindex").Do()
 	if err != nil {
-		log.Fatal(err)
+		log.Error("err : %s", err)
 	}
 
 	if count == 0 {
 		w.WriteHeader(404)
 		return
 	}
-
-	// Write content-type, statuscode, payload
+    log.Trace("Found a total of %d posts\n", count)
+	
+    // Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "Found a total of %d posts\n", count)
+    
 }
 
 // CreatePost creates a new post resource
 func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+    log.SetLogger("file", logFileName)
 	// Stub an post to be populated from the body
 	u := Post{}
 
@@ -308,7 +321,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 
 	// Write the post to Elasticsearch
 	//product1 := models.Product{Name : "peanuts", Description: "good food for afternoon", Permalink: "www.google.com"}
-	fmt.Printf("\nInsert Post user-id : %d , type: %s, active : %t\n", u.UserId, u.Type, u.Active)
+	log.Trace("\nInsert Post user-id : %d , type: %s, active : %t\n", u.UserId, u.Type, u.Active)
 	CreateIndex(u)
 
 	// Write content-type, statuscode, payload
@@ -319,6 +332,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 
 // RemovePost removes an existing post resource
 func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+    log.SetLogger("file", logFileName)
 	// Grab id
 	id := p.ByName("id")
 

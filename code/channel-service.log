@@ -1,0 +1,19 @@
+2015/11/09 17:43:05 [D] start web service on 127.0.0.1:3000
+2015/11/09 17:43:05 [D] trace
+2015/11/09 17:43:05 [I] info
+2015/11/09 17:43:05 [W] warning
+2015/11/09 17:43:05 [D] debug
+2015/11/09 17:43:05 [C] critical
+2015/11/09 18:17:37 [D] start web service on 127.0.0.1:3000
+2015/11/09 18:17:37 [D] trace
+2015/11/09 18:17:37 [I] info
+2015/11/09 18:17:37 [W] warning
+2015/11/09 18:17:37 [D] debug
+2015/11/09 18:17:37 [C] critical
+2015/11/09 18:20:48 [D] start web service on 127.0.0.1:3000
+2015/11/09 18:22:42 [D] start web service on 127.0.0.1:3000
+2015/11/09 18:22:52 [D] Get total count of the posts
+2015/11/09 18:26:29 [D] start web service on 127.0.0.1:3000
+2015/11/09 18:26:34 [D] Get total count of the posts
+2015/11/09 18:26:34 [D] Found a total of 1 posts
+
