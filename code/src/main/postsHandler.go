@@ -262,7 +262,7 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 }
 
 // Fetch post
-/*if err := uc.session.DB("post_message_service").C("posts").FindId(oid).One(&u); err != nil {
+/*if err := uc.session.DB("channel_service").C("posts").FindId(oid).One(&u); err != nil {
 	w.WriteHeader(404)
 	return
 }*/
@@ -314,7 +314,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	u.Id = bson.NewObjectId()
 
 	// Write the post to mongo
-	uc.session.DB("post_message_service").C("posts").Insert(u)
+	uc.session.DB("channel_service").C("posts").Insert(u)
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
@@ -346,7 +346,7 @@ func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p ht
 	oid := bson.ObjectIdHex(id)
 
 	// Remove post
-	if err := uc.session.DB("post_message_service").C("posts").RemoveId(oid); err != nil {
+	if err := uc.session.DB("channel_service").C("posts").RemoveId(oid); err != nil {
 		w.WriteHeader(404)
 		return
 	}
