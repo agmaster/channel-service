@@ -262,8 +262,8 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Error("err : %s", err)
 	}
-
-	q := "user-id"
+    
+    q := "*"
 	queryForm, err := url.ParseQuery(r.URL.RawQuery)
 	if err == nil && len(queryForm["q"]) > 0 {
 		fmt.Fprintln(w, queryForm["q"])
@@ -271,26 +271,11 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	}
 
 	log.Trace("q = %s ", q)
-
-	//queryStr := strings.SplitN("user-id=101", "=", 2)
-	// curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts?q="user-id"=201
-	queryStr := strings.SplitN(q, "=", 2)
-	key := queryStr[0]
-	val := queryStr[1]
-
-	// Verify q is a valid query string, otherwise bail
-
-	// Stub post
-	// u := Post{}
-
-	// Fetch post from Elasticsearch
-	// Match all should return all documents
-	//all := elastic.NewMatchAllQuery(convertQueryStr(q))
-	//termQuery = elastic.NewMatchQuery("user", "olivere")
-	termQuery := elastic.NewMatchQuery(key, val)
-	searchResult, err := client.Search().
-		Index(testIndexName).
-		Query(&termQuery).
+	//termQuery := elastic.NewMatchQuery(key, val)
+	queryStringQuery := elastic.NewQueryStringQuery(q)
+    searchResult, err := client.Search().
+    	Index(testIndexName).
+		Query(&queryStringQuery).
 		//Suggester(ts).
 		Do()
 	if err != nil {
@@ -305,7 +290,6 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
 }
-
 
 
 // Get total count of the posts
