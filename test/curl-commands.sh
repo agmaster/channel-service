@@ -32,3 +32,20 @@ curl \
       -d '{"user-id": 301, "type": "image","active": true, "title" : "mylogo",  "comment" : "This is an image file" , "link" : "image=@/Users/huazhang/git/post-message-service/test/mylogo.jpg"}'\
             http://127.0.0.1:3000/v1/posts 
  
+ 
+ curl -F  "file=@/home/devop/elk/test/lograge_production.log"  --cert "/home/devop/elk/logstash-forwarder/server.crt" -H  -v http://192.168.30.35:6782/
+ 
+ 
+ 
+ curl -F  "file=@/home/devop/elk/test/lograge_production.log"  --cacert server.crt -H  -v "http://192.168.199.35:6782/"
+ 
+ 
+  curl -F  "file=@/home/devop/elk/test/lograge_production.log"  -H -v "http://192.168.199.35:9200/"
+  
+  
+  logger  -t your_tag -p "local1.info" --file /home/devop/elk/test/lograge_production.log --server 192.168.199.35 --tcp --port 9200 
+  
+  curl -XPOST 'http://192.168.199.35:9200/posts' -d  @/home/devop/elk/test/lograge_production.log
+  
+  
+  curl -XPOST -H 'Content-Type: application/json' -d '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' 'http://192.168.199.35:9200/comments'
