@@ -21,3 +21,14 @@ curl \
   -F "image=@/Users/huazhang/git/post-message-service/test/mylogo.jpg" \
   http://127.0.0.1:3000/v1/posts
   
+
+
+# upload a file into MongoDB
+ curl -i -X POST -H "Content-Type: multipart/form-data" \
+-F "filename=@/Users/huazhang/test.txt" -v http://127.0.0.1:3000/v1/uploadfile
+ 
+ #create a new image post into MongoDB
+ curl -XPOST -H 'Content-Type: application/json' \
+      -d '{"user-id": 301, "type": "image","active": true, "title" : "mylogo",  "comment" : "This is an image file" , "link" : "image=@/Users/huazhang/git/post-message-service/test/mylogo.jpg"}'\
+            http://127.0.0.1:3000/v1/posts 
+ 

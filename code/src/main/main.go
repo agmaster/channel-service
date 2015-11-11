@@ -46,7 +46,11 @@ func main() {
     router.POST("/v1/posts/:post-id/comments", commentHandler.CreateComment)
     
     // Get :/v1/posts/:post-d/comments
-    router.GET("/v1/posts/:post-d/comments", commentHandler.GetComment)
+    //router.GET("/v1/posts/:post-id/comments", commentHandler.GetComment)
+    
+    // Get a UploadFileHandler instance
+    uploadFileController := NewUploadFileController(getSession())
+    router.POST("/v1/uploadfile", uploadFileController.UploadFile)
 
 	// Fire up the server
     log.Trace("start web service on 127.0.0.1:3000")
