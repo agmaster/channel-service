@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -34,15 +35,15 @@ func CreateIndex(post Post) {
 	log.Trace("Create a new Index in Elasticsearch")
 	// Obtain a client
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
+    log.Trace("Create a client to Elasticsearch")
 	if err != nil {
-		log.Error("Please make sure Elasticsearch server is available")
-		log.Trace("err : %s", err)
+		log.Error("err : %s", err)
 	}
 
 	// Use the IndexExists service to check if a specified index exists.
 	exists, err := client.IndexExists("postindex").Do() // index should be in lower case
+    log.Trace("Search the postindex in Elasticsearch")
 	if err != nil {
-		log.Trace("Please make sure Elasticsearch server is available")
 		log.Error("err : %s", err)
 	}
 
@@ -83,9 +84,9 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	log.SetLogger("file", logFileName)
 	// Stub an post to be populated from the body
 	u := Post{}
-    
-    // Specify the Mongodb database
-    db := uc.session.DB("channel_service")
+
+	// Specify the Mongodb database
+	db := uc.session.DB("channel_service")
 
 	// Populate the post data
 	json.NewDecoder(r.Body).Decode(&u)
@@ -185,19 +186,6 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 		// Handle error
 		log.Error("err : %s", err)
 	}
-
-	// if limit != "" {
-	//     query.limit = limit
-	// }
-	//
-	// if offset != "" {
-	//     query.offset = offset
-	// }
-	//
-	// if  q != "" {
-	//     query.q = q
-	// }
-
 	termQuery := elastic.NewTermQuery("user-id", 101)
 
 	if q != "" { //  GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
@@ -257,14 +245,32 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	log.Trace("GetPostWithQuery: retrieves an individual post resource")
 	testIndexName := "postindex"
 
-	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetSniff(false))
-	if err != nil {
-		log.Error("err : %s", err)
-	}
-    
-    q := "*"
+	var (
+		q      = "*"
+		limit  = 10
+		offset = 0
+	)
+
 	queryForm, err := url.ParseQuery(r.URL.RawQuery)
+
+	if err == nil && len(queryForm["limit"]) > 0 {
+		fmt.Fprintln(w, queryForm["limit"])
+		limit, err := strconv.Atoi(queryForm["limit"][0])
+		if err != nil {
+			log.Error("err : %s", err)
+		}
+		log.Trace("limit = %d", limit)
+	}
+
+	if err == nil && len(queryForm["offset"]) > 0 {
+		fmt.Fprintln(w, queryForm["offset"])
+		offset, err := strconv.Atoi(queryForm["offset"][0])
+		if err != nil {
+			log.Error("err : %s", err)
+		}
+		log.Trace("offset = %d", offset)
+	}
+
 	if err == nil && len(queryForm["q"]) > 0 {
 		fmt.Fprintln(w, queryForm["q"])
 		q = queryForm["q"][0]
@@ -273,9 +279,15 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	log.Trace("q = %s ", q)
 	//termQuery := elastic.NewMatchQuery(key, val)
 	queryStringQuery := elastic.NewQueryStringQuery(q)
-    searchResult, err := client.Search().
-    	Index(testIndexName).
+
+	// Obtain a client. You can provide your own HTTP client here.
+	client, err := elastic.NewClient(elastic.SetSniff(false))
+	searchResult, err := client.Search().
+		Index(testIndexName).
 		Query(&queryStringQuery).
+		Sort("id", true).         // sort by "user" field, ascending
+		From(offset).Size(limit). // take documents 0-9
+		Pretty(true).             // pretty print request and response JSON
 		//Suggester(ts).
 		Do()
 	if err != nil {
@@ -290,7 +302,6 @@ func (uc PostController) GetPostWithQuery(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
 }
-
 
 // Get total count of the posts
 // GET("/v1/posts/count", handler.GetPostCount)
