@@ -24,8 +24,10 @@ func NewUploadFileController(s *mgo.Session) *UploadFileController {
 }
 
 // Ref: The second example in the documentation for GridFS.Create
-// test command:  curl -i -F name=test -F filedata=@test.txt http://127.0.0.1/v1/uploadfile
-func (uc UploadFileController) UploadFile2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+// test command:   curl -i -X POST -H "Content-Type: multipart/form-data" \
+-F "filename=@/Users/huazhang/test.txt" -v http://127.0.0.1:3000/v1/uploadfile
+
+func (uc UploadFileController) UploadFile(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	log.SetLogger("file", logFileName)
 	log.Trace(" Upload file into mongod, method : %s", r.Method)
 	
@@ -104,7 +106,7 @@ func testReadWrite() {
 }
 // Ref: The second example in the documentation for GridFS.Create
 // test command:  curl -i -F name=test -F filedata=@test.txt http://127.0.0.1/v1/uploadfile
-func (uc UploadFileController) UploadFile(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (uc UploadFileController) UploadFile2(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	log.SetLogger("file", logFileName)
 	log.Trace(" Upload file into mongodb, method : %s", r.Method)
 	

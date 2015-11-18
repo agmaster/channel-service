@@ -59,11 +59,12 @@ func CreateIndex(post Post) {
 	}
 
 	// Index a post (using JSON serialization)
+    tweet2 := `{"user" : "olivere", "message" : "It's a Raggy Waltz"}`
 	put1, err := client.Index().
 		Index("postindex").
 		Type("text").
 		Id("Id").
-		BodyJson(post).
+		BodyJson(tweet2).
 		Do()
 
 	if err != nil {
