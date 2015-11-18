@@ -28,4 +28,6 @@ curl -XGET 'http://127.0.0.1:3000/v1/posts/??limit=10&offset=xx&q=user-id:101'
 
 
 # Create comments 
-curl -XPOST -H 'Content-Type: application/json' -d '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' 'http://192.168.199.35:9200/comments'
+curl -XPOST -H 'Content-Type: application/json' \
+     -d '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' \
+          'http://127.0.0.1:3000/v1/posts/564cf977d12619192199b1b3/comments'

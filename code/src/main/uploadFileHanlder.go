@@ -23,7 +23,6 @@ func NewUploadFileController(s *mgo.Session) *UploadFileController {
 }
 
 /* Ref: The second example in the documentation for GridFS.Create
- test command:   
 curl -i -X POST -H "Content-Type: multipart/form-data" \
 -F "filename=@/Users/huazhang/git/channel-service/test/test.pdf" -v http://127.0.0.1:3000/v1/uploadfile
 */
@@ -43,12 +42,10 @@ func (uc UploadFileController) UploadFile(w http.ResponseWriter, r *http.Request
 	DocToText(inputFile, outText)
     importTextElastic(outText.String())
     saveFile2Mongodb(uc, w, r)
-	
 }
 
 // Create a new Index into Elasticsearch
 func importTextElastic(inputText string) {
-    
     log.SetLogger("file", logFileName)
     log.Trace("Create a new Index in Elasticsearch")
 
@@ -139,9 +136,5 @@ func saveFile2Mongodb(uc UploadFileController, w http.ResponseWriter, r *http.Re
 
     //Write a log type message
     log.Trace("%d bytes written to the Mongodb instance\n", n)
-    
 }
-
-
-
 // Ref:  http://stackoverflow.com/questions/22159665/store-uploaded-file-in-mongodb-gridfs-using-mgo-without-saving-to-memory

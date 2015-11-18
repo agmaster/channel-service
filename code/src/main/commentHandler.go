@@ -61,6 +61,7 @@ func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p
 // CreateComment creates a new comment resource
 func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
     log.SetLogger("file", logFileName)
+    log.Trace("creates a new comment for a post")
 	// Stub an comment to be populated from the body
 	u := Comment{}
 
