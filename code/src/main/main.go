@@ -20,8 +20,7 @@ func main() {
    //log.SetLogger("console", `{"level":1}`)
    log.SetLogger("file", logFileName)
 
-    
-	// Instantiate a new router
+    // Instantiate a new router
 	router := httprouter.New()
 
 	// Get a PostController instance
