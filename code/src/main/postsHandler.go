@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -32,6 +31,7 @@ func NewPostController(s *mgo.Session) *PostController {
 
 // Create a new Index in Elasticsearch
 func CreateIndex(post Post) {
+    log.SetLogger("file", logFileName)
 	log.Trace("Create a new Index in Elasticsearch")
 	// Obtain a client
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
