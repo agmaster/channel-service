@@ -27,7 +27,16 @@ curl -XGET 'http://127.0.0.1:3000/v1/posts/??limit=10&q=user-id:101'
 curl -XGET 'http://127.0.0.1:3000/v1/posts/??limit=10&offset=xx&q=user-id:101'
 
 
+# Delete post  DELETE /v1/posts/post-id
+curl -XPUT 'http://127.0.0.1:3000/v1/posts/564fa99fd1261920bfa52557'
+
+
+
+
 # Create comments 
 curl -XPOST -H 'Content-Type: application/json' \
      -d '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' \
           'http://127.0.0.1:3000/v1/posts/564cf977d12619192199b1b3/comments'
+
+# List Comments
+curl -XGET -H "Content-Type: application/json"  http://127.0.0.1:3000/v1/posts/564cf977d12619192199b1b3/comments
