@@ -1,19 +1,19 @@
 package main
 
 import (
-    "bytes"
+	"bytes"
 	"errors"
-    "io"
-    "os/exec"
-    "strings"
-    "time"
+	"io"
+	"os/exec"
+	"strings"
+	"time"
 )
 
 // Convert document to plain text
 func DocToText(in io.Reader, out io.Writer) error {
-    log.SetLogger("file", logFileName)
-    log.Trace("DocToText: Convert document to plain text")
-    
+	log.SetLogger("file", logFileName)
+	log.Trace("DocToText: Convert document to plain text")
+
 	cmd := exec.Command("java", "-jar", "./bin/tika-app-1.7.jar", "-t")
 	stderr := bytes.NewBuffer(nil)
 	cmd.Stdin = in
@@ -53,7 +53,6 @@ func IsSupport(fileName string) bool {
 	return false
 
 }
-
 
 // Ref
 // 1. http://rny.io/rails/elasticsearch/2013/08/05/full-text-search-for-attachments-with-rails-and-elasticsearch.html

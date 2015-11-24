@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
@@ -21,8 +22,6 @@ type (
 	}
 )
 
-//var elasticURL = "http://127.0.0.1:9200"
-
 // NewPostController provides a reference to a PostController with provided mongo session
 func NewPostController(s *mgo.Session) *PostController {
 	return &PostController{s}
@@ -32,74 +31,100 @@ func NewPostController(s *mgo.Session) *PostController {
 func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	log.SetLogger("file", logFileName)
 	log.Trace("Create Post")
-	// Stub an post to be populated from the body
-	u := Post{}
 
 	// Specify the Mongodb database
 	db := uc.session.DB(dbName)
+
+	// Stub an post to be populated from the body
+	u := Post{}
 
 	// Populate the post data
 	json.NewDecoder(r.Body).Decode(&u)
 
 	// Add an Id
 	u.Id = bson.NewObjectId()
+	u.Active = true
 
-	// Write the post to mongo
+	// Write the post to MongoDB collection-posts
 	db.C("posts").Insert(u)
 
-	// store "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub" into MongoDB
-	if u.Type == "type" {
-		// Capture multipart form file information
-		file, handler, err := r.FormFile("filename")
-		if err != nil {
-			fmt.Println(err)
-		}
+	log.Trace("Insert Post user-id : %d , type: %s, active : %t", u.UserId, u.Type, u.Active)
+	CreateIndex(u)
 
-		fmt.Printf("handler.Header %s", handler.Header)
-
-		// Read the file into memory
-		data, err := ioutil.ReadAll(file)
-		if err != nil {
-			log.Error("err : %s", err)
-		}
-
-		// Create the file in the Mongodb Gridfs instance
-		my_file, err := db.GridFS("posts").Create("post_10001")
-
-		if err != nil {
-			log.Error("err : %s", err)
-		}
-
-		// Write the file to the Mongodb Gridfs instance
-		n, err := my_file.Write(data)
-
-		if err != nil {
-			log.Error("err : %s", err)
-		}
-
-		// Close the file
-		err = my_file.Close()
-
-		if err != nil {
-			log.Error("err : %s", err)
-		}
-
-		// Write a log type message
-		fmt.Printf("%d bytes written to the Mongodb instance\n", n)
+	// store file, video, audio, and images into MongoDB
+	if u.Type != "text" {
+		saveFileToMongo(uc, w, r)
 	}
 
-	// Marshal provided interface into JSON structure
-	uj, _ := json.Marshal(u)
+	if u.Type == "file" {
+		// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
+		log.Trace(" Index files into Elasticsearch, method : %s", r.Method)
 
-	// Write the post to Elasticsearch
-	log.Trace("\nInsert Post user-id : %d , type: %s, active : %t\n", u.UserId, u.Type, u.Active)
-	CreateIndex(u)
+		inputFile, handler, err := r.FormFile("filename")
+		if err != nil {
+			log.Error("err : %s", err)
+		}
+		log.Trace("handler.Header %s", handler.Header)
+
+		// Create io.Writer
+		outText := &bytes.Buffer{}
+
+		DocToText(inputFile, outText)
+		importTextElastic(outText.String())
+	}
 
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
+
+	// Marshal provided interface into JSON structure
+	uj, _ := json.Marshal(u)
 	fmt.Fprintf(w, "%s", uj)
 }
+
+// Store file into MongoDB via mgo
+func saveFileToMongo(uc PostController, w http.ResponseWriter, r *http.Request) {
+	log.SetLogger("file", logFileName)
+	log.Trace(" store file into MongoDB")
+
+	// Specify the Mongodb database
+	db := uc.session.DB(dbName)
+
+	// Capture multipart form file information
+	file, handler, err := r.FormFile("filename")
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+	log.Trace("handler.Header %s", handler.Header)
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+
+	// Create the file in the Mongodb Gridfs instance
+	my_file, err := db.GridFS("posts").Create("post_10002")
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+
+	// Write the file to the Mongodb Gridfs instance
+	n, err := my_file.Write(data)
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+
+	// Close the file
+	err = my_file.Close()
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+
+	//Write a log type message
+	log.Trace("%d bytes written to the Mongodb instance\n", n)
+}
+
+// Ref:  http://stackoverflow.com/questions/22159665/store-uploaded-file-in-mongodb-gridfs-using-mgo-without-saving-to-memory
 
 // Create a new Index in Elasticsearch
 func CreateIndex(post Post) {
@@ -275,30 +300,6 @@ func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p ht
 	w.WriteHeader(200) // Write status
 }
 
-func SearchIndexWithId(id string) {
-	log.SetLogger("file", logFileName)
-
-	// Obtain a client. You can provide your own HTTP client here.
-	client, err := elastic.NewClient(elastic.SetSniff(false))
-	if err != nil {
-		log.Error("err : %s", err)
-	}
-
-	get1, err := client.Get().
-		Index("postindex").
-		// Type("text").
-		Id(id).
-		Do()
-
-	if err != nil {
-		log.Error("err : %s", err)
-	}
-	if get1.Found {
-		//post = get1.(Post)
-		log.Trace("Got document %s in verion %d from index %s \n", get1.Id, get1.Version, get1.Index)
-	}
-}
-
 // Search with a term query in Elasticsearch
 func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post) {
 	log.SetLogger("file", logFileName)
@@ -349,6 +350,30 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 	}
 
 	return post
+}
+
+func SearchIndexWithId(id string) {
+	log.SetLogger("file", logFileName)
+
+	// Obtain a client. You can provide your own HTTP client here.
+	client, err := elastic.NewClient(elastic.SetSniff(false))
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+
+	get1, err := client.Get().
+		Index("postindex").
+		// Type("text").
+		Id(id).
+		Do()
+
+	if err != nil {
+		log.Error("err : %s", err)
+	}
+	if get1.Found {
+		//post = get1.(Post)
+		log.Trace("Got document %s in verion %d from index %s \n", get1.Id, get1.Version, get1.Index)
+	}
 }
 
 /*
