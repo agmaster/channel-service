@@ -1,0 +1,5 @@
+{
+    "Elasticsearch": "http://127.0.0.1:9200",
+	"Server" :  "127.0.0.1:3000", 
+	"Database" : "channel_service"
+}
