@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 type (
@@ -53,7 +54,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 
 	// store file, video, audio, and images into MongoDB
 	if u.Type != "text" {
-		saveFileToMongo(uc, w, r)
+		saveFileToMongo(u, uc)
 	}
 
 	if u.Type == "file" {
@@ -83,7 +84,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 }
 
 // Store file into MongoDB via mgo
-func saveFileToMongo(uc PostController, w http.ResponseWriter, r *http.Request) {
+func saveFileToMongo(u Post, uc PostController) {
 	log.SetLogger("file", logFileName)
 	log.Trace(" store file into MongoDB")
 
@@ -91,19 +92,28 @@ func saveFileToMongo(uc PostController, w http.ResponseWriter, r *http.Request) 
 	db := uc.session.DB(dbName)
 
 	// Capture multipart form file information
-	file, handler, err := r.FormFile("filename")
-	if err != nil {
-		log.Error("err : %s", err)
-	}
-	log.Trace("handler.Header %s", handler.Header)
+	/*
+		file, handler, err := r.FormFile("filename")
+		if err != nil {
+			log.Error("err : %s", err)
+		}
+		log.Trace("handler.Header %s", handler.Header) */
 
-	data, err := ioutil.ReadAll(file)
+	link := u.Link
+	log.Trace("link = %s", link)
+
+	//data, err := ioutil.ReadAll(link)
+	data, err := ioutil.ReadFile(link)
 	if err != nil {
 		log.Error("err : %s", err)
 	}
 
 	// Create the file in the Mongodb Gridfs instance
-	my_file, err := db.GridFS("posts").Create("post_10002")
+	timestamp := time.Now().Unix()
+	tmstr := strconv.FormatInt(timestamp, 10)
+	fileName := "post-file-" + tmstr
+	my_file, err := db.GridFS("posts").Create(fileName)
+
 	if err != nil {
 		log.Error("err : %s", err)
 	}
@@ -121,15 +131,13 @@ func saveFileToMongo(uc PostController, w http.ResponseWriter, r *http.Request) 
 	}
 
 	//Write a log type message
-	log.Trace("%d bytes written to the Mongodb instance\n", n)
+	log.Trace("%d bytes written to the Mongodb instance", n)
 }
-
-// Ref:  http://stackoverflow.com/questions/22159665/store-uploaded-file-in-mongodb-gridfs-using-mgo-without-saving-to-memory
 
 // Create a new Index in Elasticsearch
 func CreateIndex(post Post) {
 	log.SetLogger("file", logFileName)
-	log.Trace("Create a new Index in Elasticsearch %s\n", elasticURL)
+	log.Trace("Create a new Index in Elasticsearch %s", elasticURL)
 	// Obtain a client
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
 	log.Trace("Create a client to Elasticsearch")
@@ -155,18 +163,17 @@ func CreateIndex(post Post) {
 	}
 
 	// Index a post (using JSON serialization)
-	tweet2 := `{"user" : "olivere", "message" : "It's a Raggy Waltz"}`
 	put1, err := client.Index().
 		Index("postindex").
 		Type("text").
 		Id("Id").
-		BodyJson(tweet2).
+		BodyJson(post).
 		Do()
 
 	if err != nil {
 		log.Error("err : %s", err)
 	}
-	log.Trace("Indexed post %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
+	log.Trace("Indexed post %s to index %s, type %s in Elasticsearch", put1.Id, put1.Index, put1.Type)
 
 	// Flush to make sure the documents got written.
 	_, err = client.Flush().Index("postindex").Do()
@@ -392,5 +399,6 @@ func TestSearchSourceInnerHits(t *testing.T) {
 		t.Errorf("expected\n%s\n,got:\n%s", expected, got)
 	}
 }
-
 */
+
+// Ref:  http://stackoverflow.com/questions/22159665/store-uploaded-file-in-mongodb-gridfs-using-mgo-without-saving-to-memory
