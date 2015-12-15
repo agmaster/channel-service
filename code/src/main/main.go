@@ -7,6 +7,8 @@ import (
 	Logger "github.com/astaxie/beego/logs"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
+    
+     "github.com/cactus/go-statsd-client/statsd"
 )
 
 var log = Logger.NewLogger(10000)
@@ -35,6 +37,19 @@ func main() {
 
 	// Get a PostController instance
 	handler := NewPostController(getSession(dbstr))
+    
+    // first create a client
+       client, err := statsd.NewClient("127.0.0.1:8125", "test-client")
+       // handle any errors
+       if err != nil {
+           log.Fatal(err)
+       }
+       // make sure to clean up
+       defer client.Close()
+
+       // Send a stat
+       client.Inc("stat1", 42, 1.0)
+    
 
 	// Get total count of the posts
 	router.GET("/v1/posts/count", handler.GetPostCount)
