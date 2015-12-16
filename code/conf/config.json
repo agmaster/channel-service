@@ -1,7 +1,0 @@
-{
-    "domain": "",
-    "host": "127.0.0.1:8080",
-    "wshost": "127.0.0.1:6090",
-    "driveName": "postgres",
-    "dataSourceName": "user=sc_admin dbname=medicus_dev password=sc_admin host=127.0.0.1 port=5432 sslmode=disable"
-}
