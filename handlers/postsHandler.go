@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -14,7 +14,13 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+    
+    "../models"
+    "../middlewares"
 )
+
+var elasticURL = "http://127.0.0.1:9200"
+var dbName = "channel_service"
 
 type (
 	// PostController represents the controller for operating on the Post resource
@@ -37,7 +43,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	db := uc.session.DB(dbName)
 
 	// Stub an post to be populated from the body
-	u := Post{}
+	u := models.Post{}
 
 	// Populate the post data
 	fmt.Print(r.Body)
@@ -71,7 +77,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 		// Create io.Writer
 		outText := &bytes.Buffer{}
 
-		DocToText(inputFile, outText)
+		middlewares.DocToText(inputFile, outText)
 		importTextElastic(outText.String())
 	}
 
@@ -85,7 +91,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 }
 
 // Store file into MongoDB via mgo
-func saveFileToMongo(u Post, uc PostController) {
+func saveFileToMongo(u models.Post, uc PostController) {
 	log.SetLogger("file", logFileName)
 	log.Trace(" store file into MongoDB")
 
@@ -136,7 +142,7 @@ func saveFileToMongo(u Post, uc PostController) {
 }
 
 // Create a new Index in Elasticsearch
-func CreateIndex(post Post) {
+func CreateIndex(post models.Post) {
 	log.SetLogger("file", logFileName)
 	log.Trace("Create a new Index in Elasticsearch %s", elasticURL)
 	// Obtain a client
@@ -309,7 +315,7 @@ func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p ht
 }
 
 // Search with a term query in Elasticsearch
-func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post) {
+func SearchIndexWithTermQuery(limit string, offset string, q string) (post models.Post) {
 	log.SetLogger("file", logFileName)
 	log.Trace("Search with a term query in Elasticsearch")
 
@@ -342,12 +348,12 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post Post)
 	log.Trace("Query took %d milliseconds\n", searchResult.TookInMillis)
 
 	// Each is a convenience function that iterates over hits in a search result.
-	var ttyp Post
+	var ttyp models.Post
 	if searchResult.Hits != nil {
 		// TotalHits is another convenience function that works even when something goes wrong.
 		// log.Trace("Found a total of %d posts\n", searchResult.TotalHits())
 		for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
-			t := item.(Post)
+			t := item.(models.Post)
 
 			log.Trace("Post Name:  %s,  Type: %s, Active: %s\n", t.UserId, t.Type, t.Active)
 			post = t

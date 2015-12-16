@@ -9,6 +9,7 @@ import (
 	"gopkg.in/mgo.v2"
 
 	"github.com/cactus/go-statsd-client/statsd"
+    "./handlers"
 )
 
 var log = Logger.NewLogger(10000)
@@ -37,7 +38,7 @@ func main() {
 	router := httprouter.New()
 
 	// Get a PostController instance
-	handler := NewPostController(getSession(dbstr))
+	handler := handlers.NewPostController(getSession(dbstr))
 
 	// first create a client
 	client, err := statsd.NewClient("127.0.0.1:8125", "test-client")
@@ -64,7 +65,7 @@ func main() {
 	router.PUT("/v1/posts/:id", handler.RemovePost)
 
 	// Get a CommentController instance
-	commentHandler := NewCommentController(getSession(dbstr))
+	commentHandler := handlers.NewCommentController(getSession(dbstr))
 
 	// Create a new comment for a post
 	router.POST("/v1/posts/:post-id/comments", commentHandler.CreateComment)
@@ -73,7 +74,7 @@ func main() {
 	//router.GET("/v1/posts/:post-id/comments", commentHandler.GetComment)
 
 	// Get a UploadFileHandler instance
-	uploadFileController := NewUploadFileController(getSession(dbstr))
+	uploadFileController := handlers.NewUploadFileController(getSession(dbstr))
 	router.POST("/v1/uploadfile", uploadFileController.UploadFile)
 
 	// Fire up the server

@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -8,6 +8,9 @@ import (
 	"gopkg.in/olivere/elastic.v2"
 	"io/ioutil"
 	"net/http"
+
+      "../models"
+      "../middlewares"
 )
 
 type (
@@ -39,7 +42,7 @@ func (uc UploadFileController) UploadFile(w http.ResponseWriter, r *http.Request
 	// Create io.Writer
 	outText := &bytes.Buffer{}
 
-	DocToText(inputFile, outText)
+	middlewares.DocToText(inputFile, outText)
 	importTextElastic(outText.String())
 	saveFile2Mongodb(uc, w, r)
 }
@@ -73,7 +76,7 @@ func importTextElastic(inputText string) {
 		}
 	}
 
-	post := Post{}
+	post := models.Post{}
 	post.UserId = 201
 	post.TextMessage = inputText
 	put1, err := client.Index().

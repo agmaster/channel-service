@@ -1,4 +1,4 @@
-package main
+package middlewares
 
 import (
 	"bytes"
@@ -7,7 +7,10 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+	Logger "github.com/astaxie/beego/logs"
 )
+var log = Logger.NewLogger(10000)
+var logFileName = `{"filename":"channel-service.log"}`
 
 // Convert document to plain text
 func DocToText(in io.Reader, out io.Writer) error {

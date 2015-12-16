@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -8,7 +8,14 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	Logger "github.com/astaxie/beego/logs"
+    
+    "../models"
 )
+
+var log = Logger.NewLogger(10000)
+var logFileName = `{"filename":"channel-service.log"}`
+
 
 type (
 	// CommentController represents the controller for operating on the Comment resource
@@ -41,7 +48,7 @@ func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p
     log.SetLogger("file", logFileName)
     log.Trace("GetCommentWithQuery: retrieves an individual comment resource")
     
-    u := Comment {}
+    u := models.Comment {}
    
     // Fetch comment
     if err := uc.session.DB("channel_service").C("comments").FindId(oid).One(&u); err != nil {
@@ -63,7 +70,7 @@ func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request
     log.SetLogger("file", logFileName)
     log.Trace("creates a new comment for a post")
 	// Stub an comment to be populated from the body
-	u := Comment{}
+	u := models.Comment{}
 
 	// Populate the comment data
 	json.NewDecoder(r.Body).Decode(&u)
