@@ -1,0 +1,31 @@
+{
+	"ImportPath": ".",
+	"GoVersion": "go1.5.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/astaxie/beego/logs",
+			"Comment": "v1.5.0-9-gfb7314f",
+			"Rev": "fb7314f8ac86b83ccd34386518d97cf2363e2ae5"
+		},
+		{
+			"ImportPath": "github.com/cactus/go-statsd-client/statsd",
+			"Comment": "v3.0.0-2-g725f76b",
+			"Rev": "725f76bd0300c1f9562e76fd94c27aa17e41243e"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Comment": "v1.1-12-gf30ab90",
+			"Rev": "f30ab90cccbd5171771d26b6557d3c2f49e047a6"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2",
+			"Comment": "r2015.12.06",
+			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
+		},
+		{
+			"ImportPath": "gopkg.in/olivere/elastic.v2",
+			"Comment": "v2.0.24",
+			"Rev": "586f65f30d02b99cf9f3f7310b44be0bc77b5b6b"
+		}
+	]
+}
