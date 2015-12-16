@@ -1,21 +1,48 @@
 package main
 
 import (
-	"net/http"
-
-	//"github.com/2vive/go-lib/log"
+	"./handlers"
+	"encoding/json"
 	Logger "github.com/astaxie/beego/logs"
+	"github.com/cactus/go-statsd-client/statsd"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
-
-	"github.com/cactus/go-statsd-client/statsd"
-    "./handlers"
+	"net/http"
+	"os"
 )
 
 var log = Logger.NewLogger(10000)
 var logFileName = `{"filename":"channel-service.log"}`
 var elasticURL = "http://127.0.0.1:9200"
 var dbName = "channel_service"
+
+type Configuration struct {
+	Elasticsearch string
+	Database      string
+	Server        string
+}
+
+func readConf(fileName string) (elastic, dbstr, server string, err error) {
+
+	file, _ := os.Open(fileName)
+	decoder := json.NewDecoder(file)
+	configuration := Configuration{}
+	err = decoder.Decode(&configuration)
+	if err != nil {
+		return
+	}
+	// Elasticsearch server IP and port
+	elastic = configuration.Elasticsearch
+
+	// Mongodb connection string
+	dbstr = configuration.Database
+
+	// Channel-serivce IP and port
+	server = configuration.Server
+
+	return
+
+}
 
 func main() {
 
@@ -79,9 +106,7 @@ func main() {
 
 	// Fire up the server
 	log.Trace("start web service on %s \n", server)
-
-	http.ListenAndServe("127.0.0.1:3000", router)
-	//http.ListenAndServe(server, router)
+	http.ListenAndServe(server, router)
 }
 
 // getSession creates a new mongo session and panics if connection error occurs

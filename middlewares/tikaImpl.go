@@ -3,12 +3,13 @@ package middlewares
 import (
 	"bytes"
 	"errors"
+	Logger "github.com/astaxie/beego/logs"
 	"io"
 	"os/exec"
 	"strings"
 	"time"
-	Logger "github.com/astaxie/beego/logs"
 )
+
 var log = Logger.NewLogger(10000)
 var logFileName = `{"filename":"channel-service.log"}`
 
@@ -17,7 +18,7 @@ func DocToText(in io.Reader, out io.Writer) error {
 	log.SetLogger("file", logFileName)
 	log.Trace("DocToText: Convert document to plain text")
 
-	cmd := exec.Command("java", "-jar", "./bin/tika-app-1.7.jar", "-t")
+	cmd := exec.Command("java", "-jar", "./lib/tika-app-1.7.jar", "-t")
 	stderr := bytes.NewBuffer(nil)
 	cmd.Stdin = in
 	cmd.Stdout = out
