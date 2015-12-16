@@ -40,6 +40,7 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	u := Post{}
 
 	// Populate the post data
+	fmt.Print(r.Body)
 	json.NewDecoder(r.Body).Decode(&u)
 
 	// Add an Id

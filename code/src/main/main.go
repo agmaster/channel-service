@@ -7,6 +7,8 @@ import (
 	Logger "github.com/astaxie/beego/logs"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
+
+	"github.com/cactus/go-statsd-client/statsd"
 )
 
 var log = Logger.NewLogger(10000)
@@ -27,6 +29,7 @@ func main() {
 		log.Trace("Read config file failed! ", err)
 	}
 
+	log.Trace("server = %s", server)
 	elasticURL = elastic
 	dbName = dbstr
 
@@ -35,6 +38,18 @@ func main() {
 
 	// Get a PostController instance
 	handler := NewPostController(getSession(dbstr))
+
+	// first create a client
+	client, err := statsd.NewClient("127.0.0.1:8125", "test-client")
+	// handle any errors
+	if err != nil {
+		log.Trace("Start statsd client failed! ", err)
+	}
+	// make sure to clean up
+	defer client.Close()
+
+	// Send a stat
+	client.Inc("stat1", 42, 1.0)
 
 	// Get total count of the posts
 	router.GET("/v1/posts/count", handler.GetPostCount)
@@ -64,8 +79,8 @@ func main() {
 	// Fire up the server
 	log.Trace("start web service on %s \n", server)
 
-	//http.ListenAndServe("127.0.0.1:3000", router)
-	http.ListenAndServe(server, router)
+	http.ListenAndServe("127.0.0.1:3000", router)
+	//http.ListenAndServe(server, router)
 }
 
 // getSession creates a new mongo session and panics if connection error occurs
