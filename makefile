@@ -13,9 +13,6 @@ BUILD_TIME=`date +%FT%T%z`
 $(BINARY): $(SOURCES)
 	go build -o ${BINARY} main.go
 
-.PHONY: install
-
-
 .PHONY: clean
 clean:
-	if [ -f ${BINARY} ] ; then rm ${BINARY} ; fi
+	go clean -i .
