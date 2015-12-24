@@ -6,14 +6,13 @@ import (
 )
 
 type Comment struct {
-	Id     bson.ObjectId `json:"id" bson:"_id"`
-	UserId int64         `json:"user-id"`
-    PostId int64         `json:"post-id"`
-	Active bool          `json:"active"`
-	Content string       `json:"content"`
-	CreatedAt time.Time `json:"created-at"`
+	Id        bson.ObjectId `json:"id" bson:"_id"`
+	UserId    int64         `json:"user-id"`
+	PostId    int64         `json:"post-id"`
+	Active    bool          `json:"active"`
+	Content   string        `json:"content"`
+	CreatedAt time.Time     `json:"created-at"`
 }
-
 
 type Comments []Comment
 

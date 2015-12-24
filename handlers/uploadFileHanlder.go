@@ -9,8 +9,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-      "../models"
-      "../middlewares"
+	"../middlewares"
+	"../models"
 )
 
 type (

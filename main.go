@@ -9,10 +9,13 @@ import (
 	"gopkg.in/mgo.v2"
 	"net/http"
 	"os"
+    "fmt"
+    "strings"
 )
 
 var log = Logger.NewLogger(10000)
-var logFileName = `{"filename":"channel-service.log"}`
+var logFile = `{"filename":"channel-service.log"}`
+var configFile = "./config.json"
 var elasticURL = "http://127.0.0.1:9200"
 var dbName = "channel_service"
 
@@ -22,9 +25,15 @@ type Configuration struct {
 	Server        string
 }
 
-func readConf(fileName string) (elastic, dbstr, server string, err error) {
+type LogFileSetting struct {
+    filename string
+    daily bool
+    rotate bool
+}
 
-	file, _ := os.Open(fileName)
+func readConf(configFile string) (elastic, dbstr, server string, err error) {
+
+	file, _ := os.Open(configFile)
 	decoder := json.NewDecoder(file)
 	configuration := Configuration{}
 	err = decoder.Decode(&configuration)
@@ -45,16 +54,29 @@ func readConf(fileName string) (elastic, dbstr, server string, err error) {
 }
 
 func main() {
-
+    
+    //`os.Args[1:]`holds the arguments to the program.
+    if (os.Args[1] != "") {
+        configFile = os.Args[1]
+        fmt.Printf("configFile = %s \n", configFile)
+    }
+    
+    if (os.Args[2] != "") {
+        // func Replace(s, old, new string, n int) string
+        logFile = strings.Replace(logFile, "channel-service.log",  os.Args[2], 1)
+    	fmt.Printf("logFile = %s \n", logFile)
+    }
+    
 	// Initialize log variable (10000 is the cache size)
 	log := Logger.NewLogger(10000)
 	//log.SetLogger("console", `{"level":1}`)
-	log.SetLogger("file", logFileName)
+    log.SetLogger("file", logFile)
 
-	fileName := "./config.json"
-	elastic, dbstr, server, err := readConf(fileName)
+    // read elasticsearch, mongodb setting from config.json
+	elastic, dbstr, server, err := readConf(configFile)
 	if err != nil {
 		log.Trace("Read config file failed! ", err)
+        logFile = `{"filename":"channel-service.log"}`
 	}
 
 	log.Trace("server = %s", server)
