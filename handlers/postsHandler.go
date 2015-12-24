@@ -14,9 +14,9 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-    
-    "../models"
-    "../middlewares"
+
+	"../middlewares"
+	"../models"
 )
 
 var elasticURL = "http://127.0.0.1:9200"
