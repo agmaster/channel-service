@@ -3,91 +3,71 @@ package main
 import (
 	"./handlers"
 	"encoding/json"
+	"fmt"
 	Logger "github.com/astaxie/beego/logs"
 	"github.com/cactus/go-statsd-client/statsd"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 	"net/http"
 	"os"
-    "fmt"
-    "strings"
+	"strings"
 )
 
 var log = Logger.NewLogger(10000)
 var logFile = `{"filename":"channel-service.log"}`
 var configFile = "./config.json"
 var elasticURL = "http://127.0.0.1:9200"
+var server = "http://127.0.0.1:3000"
 var dbName = "channel_service"
 
-type Configuration struct {
-	Elasticsearch string
-	Database      string
-	Server        string
-}
-
-type LogFileSetting struct {
-    filename string
-    daily bool
-    rotate bool
-}
-
-func readConf(configFile string) (elastic, dbstr, server string, err error) {
+func readConf(configFile string) (configuration handlers.Configuration, err error) {
 
 	file, _ := os.Open(configFile)
 	decoder := json.NewDecoder(file)
-	configuration := Configuration{}
 	err = decoder.Decode(&configuration)
 	if err != nil {
 		return
 	}
-	// Elasticsearch server IP and port
-	elastic = configuration.Elasticsearch
-
-	// Mongodb connection string
-	dbstr = configuration.Database
-
-	// Channel-serivce IP and port
-	server = configuration.Server
 
 	return
-
 }
 
 func main() {
-    
-    //`os.Args[1:]`holds the arguments to the program.
-    if (os.Args[1] != "") {
-        configFile = os.Args[1]
-        fmt.Printf("configFile = %s \n", configFile)
-    }
-    
-    if (os.Args[2] != "") {
-        // func Replace(s, old, new string, n int) string
-        logFile = strings.Replace(logFile, "channel-service.log",  os.Args[2], 1)
-    	fmt.Printf("logFile = %s \n", logFile)
-    }
-    
+
+	//`os.Args[1:]`holds the arguments to the program.
+	var s, sep string
+	for i := 0; i < len(os.Args); i++ {
+		s += sep + os.Args[i]
+		sep = " "
+	}
+	fmt.Println(s)
+
+	if len(os.Args) > 1 && os.Args[1] != "" {
+		configFile = os.Args[1]
+		fmt.Printf("configFile = %s \n", configFile)
+	}
+
+	if len(os.Args) > 2 && os.Args[2] != "" {
+		// func Replace(s, old, new string, n int) string
+		logFile = strings.Replace(logFile, "channel-service.log", os.Args[2], 1)
+		fmt.Printf("logFile = %s \n", logFile)
+	}
+
 	// Initialize log variable (10000 is the cache size)
 	log := Logger.NewLogger(10000)
 	//log.SetLogger("console", `{"level":1}`)
-    log.SetLogger("file", logFile)
+	log.SetLogger("file", logFile)
 
-    // read elasticsearch, mongodb setting from config.json
-	elastic, dbstr, server, err := readConf(configFile)
-	if err != nil {
-		log.Trace("Read config file failed! ", err)
-        logFile = `{"filename":"channel-service.log"}`
-	}
-
-	log.Trace("server = %s", server)
-	elasticURL = elastic
-	dbName = dbstr
+	// read elasticsearch, mongodb setting from config.json
+	configuration, err := readConf(configFile)
 
 	// Instantiate a new router
 	router := httprouter.New()
 
 	// Get a PostController instance
-	handler := handlers.NewPostController(getSession(dbstr))
+	//uc := getController(configuration, logFile)
+
+	postHandler := handlers.NewPostController(getSession(), configuration, logFile)
 
 	// first create a client
 	client, err := statsd.NewClient("127.0.0.1:8125", "test-client")
@@ -102,19 +82,19 @@ func main() {
 	client.Inc("stat1", 42, 1.0)
 
 	// Get total count of the posts
-	router.GET("/v1/posts/count", handler.GetPostCount)
+	router.GET("/v1/posts/count", postHandler.GetPostCount)
 
 	// Get a post resource with query string
 	// GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
-	router.GET("/v1/posts", handler.GetPost)
+	router.GET("/v1/posts", postHandler.GetPost)
 	// Create a new postname := value
-	router.POST("/v1/posts", handler.CreatePost)
+	router.POST("/v1/posts", postHandler.CreatePost)
 
 	// Remove an existing post
-	router.PUT("/v1/posts/:id", handler.RemovePost)
+	router.PUT("/v1/posts/:id", postHandler.RemovePost)
 
 	// Get a CommentController instance
-	commentHandler := handlers.NewCommentController(getSession(dbstr))
+	commentHandler := handlers.NewCommentController(getSession(), configuration, logFile)
 
 	// Create a new comment for a post
 	router.POST("/v1/posts/:post-id/comments", commentHandler.CreateComment)
@@ -123,16 +103,16 @@ func main() {
 	//router.GET("/v1/posts/:post-id/comments", commentHandler.GetComment)
 
 	// Get a UploadFileHandler instance
-	uploadFileController := handlers.NewUploadFileController(getSession(dbstr))
-	router.POST("/v1/uploadfile", uploadFileController.UploadFile)
+	//	uploadFileController := handlers.NewUploadFileController(getSession(dbName))
+	//	router.POST("/v1/uploadfile", uploadFileController.UploadFile)
 
-	// Fire up the server
-	log.Trace("start web service on %s \n", server)
-	http.ListenAndServe(server, router)
+	// Fire up channel-serivce IP and port
+	log.Trace("start web service on %s \n", configuration.Server)
+	http.ListenAndServe(configuration.Server, router)
 }
 
 // getSession creates a new mongo session and panics if connection error occurs
-func getSession(dbstr string) *mgo.Session {
+func getSession() *mgo.Session {
 	// Connect to our local mongo
 	// "Database": "mongodb://localhost",
 	s, err := mgo.Dial("mongodb://localhost")

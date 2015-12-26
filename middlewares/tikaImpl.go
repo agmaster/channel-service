@@ -11,11 +11,10 @@ import (
 )
 
 var log = Logger.NewLogger(10000)
-var logFileName = `{"filename":"channel-service.log"}`
 
 // Convert document to plain text
-func DocToText(in io.Reader, out io.Writer) error {
-	log.SetLogger("file", logFileName)
+func DocToText(in io.Reader, out io.Writer, logFile string) error {
+	log.SetLogger("file", logFile)
 	log.Trace("DocToText: Convert document to plain text")
 
 	cmd := exec.Command("java", "-jar", "./lib/tika-app-1.7.jar", "-t")
