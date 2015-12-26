@@ -20,19 +20,7 @@ var elasticURL = "http://127.0.0.1:9200"
 var server = "http://127.0.0.1:3000"
 var dbName = "channel_service"
 
-type Configuration struct {
-	Elasticsearch string
-	Database      string
-	Server        string
-}
-
-type LogFileSetting struct {
-	filename string
-	daily    bool
-	rotate   bool
-}
-
-func readConf(configFile string) (configuration Configuration, err error) {
+func readConf(configFile string) (configuration handlers.Configuration, err error) {
 
 	file, _ := os.Open(configFile)
 	decoder := json.NewDecoder(file)
@@ -42,7 +30,6 @@ func readConf(configFile string) (configuration Configuration, err error) {
 	}
 
 	return
-
 }
 
 func main() {
@@ -74,21 +61,13 @@ func main() {
 	// read elasticsearch, mongodb setting from config.json
 	configuration, err := readConf(configFile)
 
-	// Elasticsearch server IP and port
-	elasticURL = configuration.Elasticsearch
-
-	// Mongodb connection string
-	dbName = configuration.Database
-
-	// Channel-serivce IP and port
-	server = configuration.Server
-	log.Trace("server = %s", server)
-
 	// Instantiate a new router
 	router := httprouter.New()
 
 	// Get a PostController instance
-	handler := handlers.NewPostController(getSession(dbName))
+	//uc := getController(configuration, logFile)
+
+	postHandler := handlers.NewPostController(getSession(), configuration, logFile)
 
 	// first create a client
 	client, err := statsd.NewClient("127.0.0.1:8125", "test-client")
@@ -103,19 +82,19 @@ func main() {
 	client.Inc("stat1", 42, 1.0)
 
 	// Get total count of the posts
-	router.GET("/v1/posts/count", handler.GetPostCount)
+	router.GET("/v1/posts/count", postHandler.GetPostCount)
 
 	// Get a post resource with query string
 	// GET:   /v1/posts[?limit=xx&offset=xx&q=xx]    q is a search string
-	router.GET("/v1/posts", handler.GetPost)
+	router.GET("/v1/posts", postHandler.GetPost)
 	// Create a new postname := value
-	router.POST("/v1/posts", handler.CreatePost)
+	router.POST("/v1/posts", postHandler.CreatePost)
 
 	// Remove an existing post
-	router.PUT("/v1/posts/:id", handler.RemovePost)
+	router.PUT("/v1/posts/:id", postHandler.RemovePost)
 
 	// Get a CommentController instance
-	commentHandler := handlers.NewCommentController(getSession(dbName))
+	commentHandler := handlers.NewCommentController(getSession(), configuration, logFile)
 
 	// Create a new comment for a post
 	router.POST("/v1/posts/:post-id/comments", commentHandler.CreateComment)
@@ -124,16 +103,16 @@ func main() {
 	//router.GET("/v1/posts/:post-id/comments", commentHandler.GetComment)
 
 	// Get a UploadFileHandler instance
-	uploadFileController := handlers.NewUploadFileController(getSession(dbName))
-	router.POST("/v1/uploadfile", uploadFileController.UploadFile)
+	//	uploadFileController := handlers.NewUploadFileController(getSession(dbName))
+	//	router.POST("/v1/uploadfile", uploadFileController.UploadFile)
 
-	// Fire up the server
-	log.Trace("start web service on %s \n", server)
-	http.ListenAndServe(server, router)
+	// Fire up channel-serivce IP and port
+	log.Trace("start web service on %s \n", configuration.Server)
+	http.ListenAndServe(configuration.Server, router)
 }
 
 // getSession creates a new mongo session and panics if connection error occurs
-func getSession(dbName string) *mgo.Session {
+func getSession() *mgo.Session {
 	// Connect to our local mongo
 	// "Database": "mongodb://localhost",
 	s, err := mgo.Dial("mongodb://localhost")

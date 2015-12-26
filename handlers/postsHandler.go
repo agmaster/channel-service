@@ -19,28 +19,32 @@ import (
 	"../models"
 )
 
-var elasticURL = "http://127.0.0.1:9200"
-var dbName = "channel_service"
+// Controller represents the controller for operating on the Post resource
+type Controller struct {
+	session *mgo.Session
+	config  Configuration
+	logFile string
+}
 
-type (
-	// PostController represents the controller for operating on the Post resource
-	PostController struct {
-		session *mgo.Session
-	}
-)
+type Configuration struct {
+	Elasticsearch string
+	Database      string
+	Server        string
+}
 
-// NewPostController provides a reference to a PostController with provided mongo session
-func NewPostController(s *mgo.Session) *PostController {
-	return &PostController{s}
+// NewPostController provides a reference to a Controller with provided mongo session
+func NewPostController(s *mgo.Session, config Configuration, logFile string) *Controller {
+
+	return &Controller{s, config, logFile}
 }
 
 // CreatePost creates a new post resource
-func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace("Create Post")
 
 	// Specify the Mongodb database
-	db := uc.session.DB(dbName)
+	db := uc.session.DB(uc.config.Database)
 
 	// Stub an post to be populated from the body
 	u := models.Post{}
@@ -57,7 +61,9 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	db.C("posts").Insert(u)
 
 	log.Trace("Insert Post user-id : %d , type: %s, active : %t", u.UserId, u.Type, u.Active)
-	CreateIndex(u)
+
+	// Create a new Index in Elasticsearch
+	CreateIndex(u, uc)
 
 	// store file, video, audio, and images into MongoDB
 	if u.Type != "text" {
@@ -77,8 +83,9 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 		// Create io.Writer
 		outText := &bytes.Buffer{}
 
-		middlewares.DocToText(inputFile, outText)
-		importTextElastic(outText.String())
+		middlewares.DocToText(inputFile, outText, uc.logFile)
+
+		middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)
 	}
 
 	// Write content-type, statuscode, payload
@@ -88,15 +95,16 @@ func (uc PostController) CreatePost(w http.ResponseWriter, r *http.Request, p ht
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
 	fmt.Fprintf(w, "%s", uj)
+	//log.Trace(w, "%s", uj)
 }
 
 // Store file into MongoDB via mgo
-func saveFileToMongo(u models.Post, uc PostController) {
-	log.SetLogger("file", logFileName)
+func saveFileToMongo(u models.Post, uc Controller) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace(" store file into MongoDB")
 
 	// Specify the Mongodb database
-	db := uc.session.DB(dbName)
+	db := uc.session.DB(uc.config.Database)
 
 	// Capture multipart form file information
 	/*
@@ -142,11 +150,11 @@ func saveFileToMongo(u models.Post, uc PostController) {
 }
 
 // Create a new Index in Elasticsearch
-func CreateIndex(post models.Post) {
-	log.SetLogger("file", logFileName)
-	log.Trace("Create a new Index in Elasticsearch %s", elasticURL)
+func CreateIndex(post models.Post, uc Controller) {
+	log.SetLogger("file", uc.logFile)
+	log.Trace("Create a new Index in Elasticsearch %s", uc.config.Elasticsearch)
 	// Obtain a client
-	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
+	client, err := elastic.NewClient(elastic.SetURL(uc.config.Elasticsearch), elastic.SetSniff(false))
 	log.Trace("Create a client to Elasticsearch")
 	if err != nil {
 		log.Error("err : %s", err)
@@ -192,8 +200,8 @@ func CreateIndex(post models.Post) {
 
 // GetPost retrieves an individual post resource
 // handler.GetPostWithQuery
-func (uc PostController) GetPost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) GetPost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace("GetPostWithQuery: retrieves an individual post resource")
 	testIndexName := "postindex"
 
@@ -257,9 +265,9 @@ func (uc PostController) GetPost(w http.ResponseWriter, r *http.Request, p httpr
 
 // Get total count of the posts
 // GET("/v1/posts/count", handler.GetPostCount)
-func (uc PostController) GetPostCount(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (uc Controller) GetPostCount(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
-	log.SetLogger("file", logFileName)
+	log.SetLogger("file", uc.logFile)
 	log.Trace("Get total count of the posts")
 
 	// Obtain a client
@@ -289,8 +297,8 @@ func (uc PostController) GetPostCount(w http.ResponseWriter, r *http.Request, p 
 }
 
 // RemovePost removes an existing post resource
-func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) RemovePost(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace("Remove an existing post")
 	// Grab id
 	id := p.ByName("id")
@@ -306,7 +314,7 @@ func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p ht
 	oid := bson.ObjectIdHex(id)
 
 	// Remove post
-	if err := uc.session.DB(dbName).C("posts").RemoveId(oid); err != nil {
+	if err := uc.session.DB(uc.config.Database).C("posts").RemoveId(oid); err != nil {
 		w.WriteHeader(404)
 		return
 	}
@@ -315,8 +323,8 @@ func (uc PostController) RemovePost(w http.ResponseWriter, r *http.Request, p ht
 }
 
 // Search with a term query in Elasticsearch
-func SearchIndexWithTermQuery(limit string, offset string, q string) (post models.Post) {
-	log.SetLogger("file", logFileName)
+func SearchIndexWithTermQuery(limit string, offset string, q string, uc Controller) (post models.Post) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace("Search with a term query in Elasticsearch")
 
 	// Obtain a client. You can provide your own HTTP client here.
@@ -366,8 +374,8 @@ func SearchIndexWithTermQuery(limit string, offset string, q string) (post model
 	return post
 }
 
-func SearchIndexWithId(id string) {
-	log.SetLogger("file", logFileName)
+func SearchIndexWithId(id string, uc Controller) {
+	log.SetLogger("file", uc.logFile)
 
 	// Obtain a client. You can provide your own HTTP client here.
 	client, err := elastic.NewClient(elastic.SetSniff(false))

@@ -14,24 +14,16 @@ import (
 )
 
 var log = Logger.NewLogger(10000)
-var logFileName = `{"filename":"channel-service.log"}`
 
-type (
-	// CommentController represents the controller for operating on the Comment resource
-	CommentController struct {
-		session *mgo.Session
-	}
-)
-
-// NewCommentController provides a reference to a CommentController with provided mongo session
-func NewCommentController(s *mgo.Session) *CommentController {
-	return &CommentController{s}
+// NewCommentController provides a reference to a Controller with provided mongo session
+func NewCommentController(s *mgo.Session, config Configuration, logFile string) *Controller {
+	return &Controller{s, config, logFile}
 }
 
 // GetComment retrieves an individual comment resource
 // handler.GetComment
-func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) GetComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	// Grab id
 	id := p.ByName("id")
 
@@ -44,13 +36,12 @@ func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p
 	// Grab id
 	oid := bson.ObjectIdHex(id)
 
-	log.SetLogger("file", logFileName)
 	log.Trace("GetCommentWithQuery: retrieves an individual comment resource")
 
 	u := models.Comment{}
 
 	// Fetch comment
-	if err := uc.session.DB("channel_service").C("comments").FindId(oid).One(&u); err != nil {
+	if err := uc.session.DB(uc.config.Database).C("comments").FindId(oid).One(&u); err != nil {
 		w.WriteHeader(404)
 		return
 	}
@@ -65,8 +56,8 @@ func (uc CommentController) GetComment(w http.ResponseWriter, r *http.Request, p
 }
 
 // CreateComment creates a new comment resource
-func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) CreateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	log.Trace("creates a new comment for a post")
 	// Stub an comment to be populated from the body
 	u := models.Comment{}
@@ -78,7 +69,7 @@ func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request
 	u.Id = bson.NewObjectId()
 
 	// Write the comment to mongo
-	uc.session.DB("channel_service").C("comments").Insert(u)
+	uc.session.DB(uc.config.Database).C("comments").Insert(u)
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
@@ -90,8 +81,8 @@ func (uc CommentController) CreateComment(w http.ResponseWriter, r *http.Request
 }
 
 // RemoveComment removes an existing comment resource
-func (uc CommentController) RemoveComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	log.SetLogger("file", logFileName)
+func (uc Controller) RemoveComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.SetLogger("file", uc.logFile)
 	// Grab id
 	id := p.ByName("id")
 
@@ -105,7 +96,7 @@ func (uc CommentController) RemoveComment(w http.ResponseWriter, r *http.Request
 	oid := bson.ObjectIdHex(id)
 
 	// Remove comment
-	if err := uc.session.DB("channel_service").C("comments").RemoveId(oid); err != nil {
+	if err := uc.session.DB(uc.config.Database).C("comments").RemoveId(oid); err != nil {
 		w.WriteHeader(404)
 		return
 	}

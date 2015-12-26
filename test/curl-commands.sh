@@ -1,6 +1,6 @@
 #Insert a new text passage post  
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://channel-service.www.abovegem.com:11442/v1/posts 
+ '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://127.0.0.1:3000/v1/posts 
 
 curl -XPOST -H 'Content-Type: application/json' -d \
  '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://127.0.0.1:8082/test 
