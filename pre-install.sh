@@ -1,9 +1,6 @@
 #!/bin/sh
 
-# install Godep
-go get -v github.com/tools/godep
-
-godep version
+export GOPATH=`pwd`
 
 echo "go get -v dependency packages"
 go get -v github.com/astaxie/beego/logs

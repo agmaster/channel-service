@@ -1,0 +1,8 @@
+/var/log/channel-service.log {
+  daily
+  rotate 365
+  missingok
+  copytruncate
+  compress
+  delaycompress
+}
