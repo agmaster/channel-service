@@ -1,4 +1,18 @@
 #Insert a new text passage post  
+
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{"user-id": 101, 
+    "type": "text",
+    "active": true, 
+    "content" : {
+         "text-message" : "Honey Roasted Peanuts",
+    },
+    "created-at": "Nov 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts 
+
+#3. Query the total acount of the posts
+curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts/count
+
 curl -XPOST -H 'Content-Type: application/json' -d \
  '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://127.0.0.1:3000/v1/posts 
 

@@ -36,7 +36,7 @@ func ImportTextElastic(inputText string, elasticURL string, logFile string) {
 
 	post := models.Post{}
 	post.UserId = 201
-	post.TextMessage = inputText
+	post.Content.TextMessage = inputText
 	put1, err := client.Index().
 		Index("postindex").
 		Type("text").

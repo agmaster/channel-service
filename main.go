@@ -119,7 +119,7 @@ func getSession() *mgo.Session {
 
 	// Check if connection error, is mongo running?
 	if err != nil {
-		log.Trace("connection error~!", err)
+		log.Debug("connection error~!", err)
 
 	}
 
