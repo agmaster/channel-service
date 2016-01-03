@@ -28,24 +28,6 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 
 curl -XPOST -H 'Content-Type: application/json' -d \
  '{
-	"user-id": 301,
-	"type": "file",
-	"active": true,
-	"content": {
-		"link": "/Users/huazhang/git/channel-service/test/test.pdf",
-		"title": "my logo",
-        "name": "my.logo",
-		"comment": "cartoon style"
-	},
-	"created-at": "Dec 25 16:00:51 PST 2015"
-}' -v   http://127.0.0.1:3000/v1/posts
-
-
-
-
-
-curl -XPOST -H 'Content-Type: application/json' -d \
- '{
 	"user-id": 401,
 	"type": "file",
 	"active": true,
