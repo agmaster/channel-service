@@ -1,15 +1,26 @@
 #Insert a new text passage post  
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://127.0.0.1:3000/v1/posts 
+ '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://channel-service.www.abovegem.com:11442/v1/posts 
 
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://127.0.0.1:8082/test 
-
+ '{"user-id": 101, 
+    "type": "text",
+    "active": true, 
+    "text-message" : "Honey Roasted Peanuts",
+    "created-at": "Nov 25 16:00:51 PST 2015", 
+    "updated-at": "Nov 25 16:00:51 PST 2015" 
+}' -v   http://channel-service.www.abovegem.com:11442/v1/posts
 
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts", "created-at": "Nov 25 16:00:51 PST 2015",  "updated-at": "Nov 25 16:00:51 PST 2015" }' http://channel-service.www.abovegem.com:11442/v1/posts
+ '{"user-id": 101, 
+    "type": "text",
+    "active": true, 
+    "content" : {
+         "text-message" : "Honey Roasted Peanuts",
+    },
+    "created-at": "Nov 25 16:00:51 PST 2015"
+}' -v   http://channel-service.www.abovegem.com:11442/v1/posts
 
- 
 curl -XGET -H 'Content-Type: application/json' http://127.0.0.1:9200/postindex/?pretty=true
 
 #create a new image post, and store image into Mongodb
@@ -34,9 +45,9 @@ curl -H "Content-Type: application/json" -X GET -v http://channel-service.www.ab
 # Query the posts with a filter string
 curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/?q=user-id:101'
 
-curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/??limit=10&q=user-id:101'
+curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/?limit=10&q=user-id:101'
 
-curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/??limit=10&offset=xx&q=user-id:101'
+curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/?limit=10&offset=xx&q=user-id:101'
 
 
 # Delete post  DELETE /v1/posts/post-id

@@ -35,13 +35,6 @@ func readConf(configFile string) (configuration handlers.Configuration, err erro
 func main() {
 
 	//`os.Args[1:]`holds the arguments to the program.
-	var s, sep string
-	for i := 0; i < len(os.Args); i++ {
-		s += sep + os.Args[i]
-		sep = " "
-	}
-	fmt.Println(s)
-
 	if len(os.Args) > 1 && os.Args[1] != "" {
 		configFile = os.Args[1]
 		fmt.Printf("configFile = %s \n", configFile)
@@ -119,7 +112,7 @@ func getSession() *mgo.Session {
 
 	// Check if connection error, is mongo running?
 	if err != nil {
-		log.Trace("connection error~!", err)
+		log.Debug("connection error~!", err)
 
 	}
 

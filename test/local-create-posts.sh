@@ -1,26 +1,75 @@
 #Insert a new text passage post  
-curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" : "Honey Roasted Peanuts" }' http://channel-service.www.abovegem.com:11442/v1/posts 
 
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101, "type": "text","active": true,  "text-message" :
- "Honey Roasted Peanuts", "created-at": "Nov 25 16:00:51 PST 2015", 
-  "updated-at": "Nov 25 16:00:51 PST 2015" 
-}'   http://channel-service.www.abovegem.com:11442/v1/posts
+ '{"user-id": 201,
+    "type": "text",
+    "active": true,
+    "content" : {
+         "text-message" : "Honey Roasted Peanuts"
+    },
+    "created-at": "Nov 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
 
- 
+#2. create a new image post, and store image into Mongodb
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 301,
+	"type": "image",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/mylogo.jpg",
+		"title": "my logo",
+        "name": "my.logo",
+		"comment": "cartoon style"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
+
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 301,
+	"type": "file",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/test.pdf",
+		"title": "my logo",
+        "name": "my.logo",
+		"comment": "cartoon style"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
+
+
+
+
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 401,
+	"type": "file",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/test.pdf",
+		"title": "test.pdf",
+        "name":  "test.pdf",
+		"comment": "store pdf into elasticsearch and mongodb"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
+
+
+#3. Query the total acount of the posts
+curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts/count
+
+
 curl -XGET -H 'Content-Type: application/json' http://127.0.0.1:9200/postindex/?pretty=true
 
 #create a new image post, and store image into Mongodb
 curl -XPOST -H 'Content-Type: application/json' -d \
 '{"user-id": 201, "type": "image","active": true,  "title" : "mylogo", "link" : "image=@/Users/huazhang/git/post-message-service/test/mylogo.jpg", name: "logo", "comment" : "This is an image file" }' http://channel-service.www.abovegem.com:11442/v1/posts 
 
-curl \
-  -F "user-id=201" \
-  -F "type=image" \
-  -F "comment=This is an image file" \
-  -F "image=@/Users/huazhang/git/post-message-service/test/mylogo.jpg" \
-  http://channel-service.www.abovegem.com:11442/v1/posts
 
 # create a new file post, store a file into MongoDB, and create index in Elasticsearch
  curl -i -X POST -H "Content-Type: multipart/form-data" \

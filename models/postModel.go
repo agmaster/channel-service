@@ -6,13 +6,13 @@ import (
 )
 
 type Post struct {
-	Id     bson.ObjectId `json:"id" bson:"_id"`
-	UserId int64         `json:"user-id"`
-	Type   string        `json:"type"`
-	Active bool          `json:"active"`
-	Content
-	CreatedAt time.Time `json:"created-at"`
-	UpdatedAt time.Time `json:"updated-at"`
+	Id        bson.ObjectId `json:"id" bson:"_id"`
+	UserId    int64         `json:"user-id"`
+	Type      string        `json:"type"`
+	Active    bool          `json:"active"`
+	Content   *Content      `json:"content"`
+	CreatedAt time.Time     `json:"created-at"`
+	UpdatedAt time.Time     `json:"updated-at"`
 }
 
 type Content struct {

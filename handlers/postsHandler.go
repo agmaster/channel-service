@@ -51,29 +51,40 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 
 	// Populate the post data
 	fmt.Print(r.Body)
-	json.NewDecoder(r.Body).Decode(&u)
+	//log.Debug("r.Body = %s   ", r.Body)
+	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+		fmt.Errorf("decode request body failed")
+		log.Error("decode request body failed")
+	}
 
 	// Add an Id
 	u.Id = bson.NewObjectId()
 	u.Active = true
+	u.CreatedAt = time.Now()
+	u.UpdatedAt = time.Now()
+	fmt.Println(u)
+	log.Debug("u = %v", u)
 
 	// Write the post to MongoDB collection-posts
-	db.C("posts").Insert(u)
 
-	log.Trace("Insert Post user-id : %d , type: %s, active : %t", u.UserId, u.Type, u.Active)
+	if err := db.C("posts").Insert(u); err != nil {
+		log.Error("write the post to MongoDB failed. Error : %v", err)
+		return
+	}
+
+	log.Debug("Insert Post user-id : %d , type: %s, active : %t", u.UserId, u.Type, u.Active)
 
 	// Create a new Index in Elasticsearch
 	CreateIndex(u, uc)
 
 	// store file, video, audio, and images into MongoDB
-	if u.Type != "text" {
+	if u.Type == "file" || u.Type == "video" || u.Type == "image" {
 		saveFileToMongo(u, uc)
 	}
 
-	if u.Type == "file" {
-		// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
+	// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
+	if u.Type == "pdf" { //to be updated  2016.1.2
 		log.Trace(" Index files into Elasticsearch, method : %s", r.Method)
-
 		inputFile, handler, err := r.FormFile("filename")
 		if err != nil {
 			log.Error("err : %s", err)
@@ -86,6 +97,7 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 		middlewares.DocToText(inputFile, outText, uc.logFile)
 
 		middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)
+
 	}
 
 	// Write content-type, statuscode, payload
@@ -94,14 +106,17 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 
 	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
+	log.Debug("Store the post into MongoDB and Elasticsearch")
+	log.Debug("post : %s", uj)
 	fmt.Fprintf(w, "%s", uj)
+
 	//log.Trace(w, "%s", uj)
 }
 
 // Store file into MongoDB via mgo
 func saveFileToMongo(u models.Post, uc Controller) {
 	log.SetLogger("file", uc.logFile)
-	log.Trace(" store file into MongoDB")
+	log.Trace(" store file into MongoDB : %s ", uc.config.Database)
 
 	// Specify the Mongodb database
 	db := uc.session.DB(uc.config.Database)
@@ -113,9 +128,8 @@ func saveFileToMongo(u models.Post, uc Controller) {
 			log.Error("err : %s", err)
 		}
 		log.Trace("handler.Header %s", handler.Header) */
-
-	link := u.Link
-	log.Trace("link = %s", link)
+	log.Debug("u.Content.Link = %s", u.Content.Link)
+	link := u.Content.Link
 
 	//data, err := ioutil.ReadAll(link)
 	data, err := ioutil.ReadFile(link)
