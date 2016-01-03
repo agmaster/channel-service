@@ -19,32 +19,34 @@ after that you use channel-service now.
 
 # 1. Insert a new text passage post  
 curl -XPOST -H 'Content-Type: application/json' -d \
- '{"user-id": 101,
-  "type": "text",
-  "active": true,
-  "text-message" : "Honey Roasted Peanuts",
-  "created-at": "Nov 25 16:00:51 PST 2015",  
-  "updated-at": "Nov 25 16:00:51 PST 2015" 
-  }'  \
-  http://127.0.0.1:3000/v1/posts
+ '{"user-id": 201,
+    "type": "text",
+    "active": true,
+    "content" : {
+         "text-message" : "Honey Roasted Peanuts"
+    },
+    "created-at": "Nov 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
 
 
 #2. create a new image post, and store image into Mongodb
-curl \
-  -F "user-id=201" \
-  -F "type=image" \
-  -F "comment=This is an image file" \
-  -F "image=@/home/ogrunner/git/channel-service/test/mylogo.jpg" \
-  http://127.0.0.1:3000/v1/posts
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 301,
+	"type": "image",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/mylogo.jpg",
+		"title": "my logo",
+		"comment": "cartoon style"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
 
 
 #3. Query the total acount of the posts
 curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts/count
-
-
-
-
-
 
 # Optional part
 # optional -  check Elasticsearch works  

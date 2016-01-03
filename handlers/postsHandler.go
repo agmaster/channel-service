@@ -75,7 +75,7 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	log.Debug("Insert Post user-id : %d , type: %s, active : %t", u.UserId, u.Type, u.Active)
 
 	// Create a new Index in Elasticsearch
-	//CreateIndex(u, uc)
+	CreateIndex(u, uc)
 
 	// store file, video, audio, and images into MongoDB
 	if u.Type == "file" || u.Type == "video" || u.Type == "image" {
@@ -83,7 +83,7 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	}
 
 	// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
-	if u.Type == "file" {
+	if u.Type == "pdf" { //to be updated  2016.1.2
 		log.Trace(" Index files into Elasticsearch, method : %s", r.Method)
 		inputFile, handler, err := r.FormFile("filename")
 		if err != nil {
