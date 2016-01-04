@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -50,10 +51,7 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	u := models.Post{}
 
 	// Populate the post data
-	fmt.Print(r.Body)
-	//log.Debug("r.Body = %s   ", r.Body)
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
-		fmt.Errorf("decode request body failed")
 		log.Error("decode request body failed")
 	}
 
@@ -79,23 +77,29 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 
 	// store file, video, audio, and images into MongoDB
 	if u.Type == "file" || u.Type == "video" || u.Type == "image" {
+
 		saveFileToMongo(u, uc)
+
 	}
 
-	// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
-	if u.Type == "pdf" { //to be updated  2016.1.2
-		log.Trace(" Index files into Elasticsearch, method : %s", r.Method)
-		inputFile, handler, err := r.FormFile("filename")
+	// Index files to Elasticsearch
+	if u.Type == "file" { //to be updated  2016.1.2
+		log.Debug(" Index files into Elasticsearch, method : %s", r.Method)
+		inputFile, err := os.Open(u.Content.Link)
+		//		inputFile, handler, err := r.FormFile("filename")
 		if err != nil {
 			log.Error("err : %s", err)
 		}
-		log.Trace("handler.Header %s", handler.Header)
+
+		// log.debug("handler.Header %s", handler.Header)
 
 		// Create io.Writer
 		outText := &bytes.Buffer{}
 
+		// use tika to convert "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub" to text
 		middlewares.DocToText(inputFile, outText, uc.logFile)
 
+		// index text into Elasticsearch
 		middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)
 
 	}
@@ -113,10 +117,10 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	//log.Trace(w, "%s", uj)
 }
 
-// Store file into MongoDB via mgo
+// Store file, video, audio, and images into MongoDB via mgo
 func saveFileToMongo(u models.Post, uc Controller) {
 	log.SetLogger("file", uc.logFile)
-	log.Trace(" store file into MongoDB : %s ", uc.config.Database)
+	log.Trace("store file into MongoDB : %s ", uc.config.Database)
 
 	// Specify the Mongodb database
 	db := uc.session.DB(uc.config.Database)
