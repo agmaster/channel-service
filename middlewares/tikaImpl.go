@@ -3,19 +3,16 @@ package middlewares
 import (
 	"bytes"
 	"errors"
-	Logger "github.com/astaxie/beego/logs"
 	"io"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-var log = Logger.NewLogger(10000)
-
 // Convert document to plain text
 func DocToText(in io.Reader, out io.Writer, logFile string) error {
 	log.SetLogger("file", logFile)
-	log.Trace("DocToText: Convert document to plain text")
+	log.Trace("run middlewares.DocToText")
 
 	cmd := exec.Command("java", "-jar", "./lib/tika-app-1.7.jar", "-t")
 	stderr := bytes.NewBuffer(nil)

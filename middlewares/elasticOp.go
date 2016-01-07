@@ -2,8 +2,11 @@ package middlewares
 
 import (
 	"../models"
+	Logger "github.com/astaxie/beego/logs"
 	"gopkg.in/olivere/elastic.v2"
 )
+
+var log = Logger.NewLogger(10000)
 
 // Create a new Index into Elasticsearch
 func ImportTextElastic(inputText string, elasticURL string, logFile string) {

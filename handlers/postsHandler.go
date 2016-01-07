@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"../middlewares"
+	"../models"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -16,8 +18,9 @@ import (
 	"strconv"
 	"time"
 
-	"../middlewares"
-	"../models"
+	"errors"
+	"io"
+	"os/exec"
 )
 
 // Controller represents the controller for operating on the Post resource
@@ -85,22 +88,45 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	// Index files to Elasticsearch
 	if u.Type == "file" { //to be updated  2016.1.2
 		log.Debug(" Index files into Elasticsearch, method : %s", r.Method)
-		inputFile, err := os.Open(u.Content.Link)
-		//		inputFile, handler, err := r.FormFile("filename")
+		log.Trace("u.Content.Link = %s ", u.Content.Link)
+
+		file := "/Users/huazhang/git/channel-service/test/test.txt"
+
+		f, err := os.Open(file)
 		if err != nil {
-			log.Error("err : %s", err)
+			//log.Error("err : %v", err)
+			panic(err)
 		}
 
-		// log.debug("handler.Header %s", handler.Header)
-
 		// Create io.Writer
-		outText := &bytes.Buffer{}
+		ws := &bytes.Buffer{}
 
-		// use tika to convert "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub" to text
-		middlewares.DocToText(inputFile, outText, uc.logFile)
+		//DocToText(f, ws)
+		middlewares.DocToText(f, ws, uc.logFile)
+		log.Trace("ws.String() = %s", ws.String())
+		fmt.Println(ws.String())
+		// assert.NoError(t, err)
+		// assert.True(t, ws.Len() > 0)
+		middlewares.ImportTextElastic(ws.String(), uc.config.Elasticsearch, uc.logFile)
 
-		// index text into Elasticsearch
-		middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)
+		/*
+			inputFile, err := os.Open(u.Content.Link)
+			//	inputFile, handler, err := r.FormFile("filename")
+			if err != nil {
+				log.Error("err : %s", err)
+			}
+
+			// log.debug("handler.Header %s", handler.Header)
+
+			// Create io.Writer
+			outText := &bytes.Buffer{}
+
+			// use tika to convert "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub" to text
+			//middlewares.DocToText(inputFile, outText, uc.logFile)
+			DocToText(inputFile, outText)
+
+			// index text into Elasticsearch
+			middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)*/
 
 	}
 
@@ -115,6 +141,37 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	fmt.Fprintf(w, "%s", uj)
 
 	//log.Trace(w, "%s", uj)
+}
+
+// Convert document to plain text
+func DocToText(in io.Reader, out io.Writer) error {
+
+	cmd := exec.Command("java", "-jar", "./lib/tika-app-1.7.jar", "-t")
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdin = in
+	cmd.Stdout = out
+	cmd.Stderr = stderr
+
+	cmd.Start()
+	cmdDone := make(chan error, 1)
+	go func() {
+		cmdDone <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(time.Duration(500000) * time.Millisecond):
+		if err := cmd.Process.Kill(); err != nil {
+			return errors.New(err.Error())
+		}
+		<-cmdDone
+		return errors.New("Command timed out")
+	case err := <-cmdDone:
+		if err != nil {
+			return errors.New(stderr.String())
+		}
+	}
+
+	return nil
 }
 
 // Store file, video, audio, and images into MongoDB via mgo

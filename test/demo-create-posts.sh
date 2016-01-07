@@ -23,7 +23,7 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 		"comment": "cartoon style"
 	},
 	"created-at": "Dec 25 16:00:51 PST 2015"
-}' -v   http://channel-service.www.abovegem.com:11442/v1/posts
+}'  http://channel-service.www.abovegem.com:11442/v1/posts
 
 
 curl -XPOST -H 'Content-Type: application/json' -d \

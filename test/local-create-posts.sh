@@ -41,6 +41,20 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 }' -v   http://127.0.0.1:3000/v1/posts
 
 
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 401,
+	"type": "file",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/test.txt",
+		"title": "test.pdf",
+        "name":  "test.pdf",
+		"comment": "store pdf into elasticsearch and mongodb"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
 
 #3. Query the total acount of the posts
 curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts/count
