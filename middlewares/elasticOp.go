@@ -2,16 +2,25 @@ package middlewares
 
 import (
 	"../models"
+	Logger "github.com/astaxie/beego/logs"
 	"gopkg.in/olivere/elastic.v2"
 )
+
+var log = Logger.NewLogger(10000)
 
 // Create a new Index into Elasticsearch
 func ImportTextElastic(inputText string, elasticURL string, logFile string) {
 	log.SetLogger("file", logFile)
 	log.Trace("Create a new Index in Elasticsearch")
 
+	if inputText == "" {
+		inputText = "test string"
+	}
+
+	log.Trace("inputText = %s ", inputText)
+
 	// Obtain a client
-	log.Trace("Create an Elasticsearch client")
+	log.Trace("Create an Elasticsearch client : %s", elasticURL)
 	client, err := elastic.NewClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
 	if err != nil {
 		log.Error("err : %s", err)
@@ -36,7 +45,7 @@ func ImportTextElastic(inputText string, elasticURL string, logFile string) {
 
 	post := models.Post{}
 	post.UserId = 201
-	post.Content.TextMessage = inputText
+	//post.Content.TextMessage = inputText
 	put1, err := client.Index().
 		Index("postindex").
 		Type("text").

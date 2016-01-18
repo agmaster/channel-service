@@ -1,4 +1,9 @@
-#Insert a new text passage post  
+#!/bin/sh
+
+curl -XGET -H 'Content-Type: application/json'  http://127.0.0.1:3000/v1/posts
+
+
+# 1 Insert a new text passage post  
 
 curl -XPOST -H 'Content-Type: application/json' -d \
  '{"user-id": 201,
@@ -41,12 +46,49 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 }' -v   http://127.0.0.1:3000/v1/posts
 
 
+curl -XPOST -H 'Content-Type: application/json' -d \
+ '{
+	"user-id": 401,
+	"type": "file",
+	"active": true,
+	"content": {
+		"link": "/Users/huazhang/git/channel-service/test/test.txt",
+		"title": "test.pdf",
+        "name":  "test.pdf",
+		"comment": "store pdf into elasticsearch and mongodb"
+	},
+	"created-at": "Dec 25 16:00:51 PST 2015"
+}' -v   http://127.0.0.1:3000/v1/posts
+
 
 #3. Query the total acount of the posts
 curl -H "Content-Type: application/json" -X GET -v http://127.0.0.1:3000/v1/posts/count
 
 
+curl -XGET 'http://127.0.0.1:3000/v1/posts?limit=1&offset=0'
+
 curl -XGET -H 'Content-Type: application/json' http://127.0.0.1:9200/postindex/?pretty=true
+
+curl -XGET  http://127.0.0.1:9200/postindex/_search -d '{
+    "query" : {
+        "comment": "store pdf into elasticsearch and mongodb" }
+    }
+}'
+curl -XGET  http://127.0.0.1:9200/postindex/_search -d '
+{
+    "query": {
+        "query_string": {
+            "query": {"mongodb"}
+        }
+    }
+}'
+
+
+curl -XGET  http://127.0.0.1:9200/postindex/_search -d '{
+    "query" : {
+        "term" : { "text-message": "Honey" }
+    }
+}'
 
 #create a new image post, and store image into Mongodb
 curl -XPOST -H 'Content-Type: application/json' -d \

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"../middlewares"
+	"../models"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -11,12 +13,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
 
-	"../middlewares"
-	"../models"
+	"errors"
+	"io"
+	"os/exec"
 )
 
 // Controller represents the controller for operating on the Post resource
@@ -31,6 +35,50 @@ type Configuration struct {
 	Database      string
 	Server        string
 }
+
+type Post struct {
+	Id        bson.ObjectId `json:"id" bson:"_id"`
+	UserId    int64         `json:"user-id"`
+	Type      string        `json:"type"`
+	Active    bool          `json:"active"`
+	Content   *Content      `json:"content"`
+	CreatedAt time.Time     `json:"created-at"`
+	UpdatedAt time.Time     `json:"updated-at"`
+}
+
+type Content struct {
+	Title       string `json:"title"`
+	Link        string `json:"link"`
+	Name        string `json:"name"`
+	Comment     string `json:"comment"`
+	TextMessage string `json:"text-message"`
+}
+
+type Posts []Post
+
+type ElasticResult struct {
+	Source *Post `json:"_source"`
+}
+
+/*
+type ElasticResult struct {
+    "_source": {
+    				"id": "568eec391a71a250c51c0077",
+    				"user-id": 401,
+    				"type": "file",
+    				"active": true,
+    				"content": {
+    					"title": "test.pdf",
+    					"link": "/home/ogrunner/git/channel-service/test/test.pdf",
+    					"name": "test.pdf",
+    					"comment": "store pdf into elasticsearch and mongodb",
+    					"text-message": ""
+    				},
+    				"created-at": "2016-01-07T14:52:41.523386937-08:00",
+    				"updated-at": "2016-01-07T14:52:41.523387009-08:00"
+    			}
+}
+*/
 
 // NewPostController provides a reference to a Controller with provided mongo session
 func NewPostController(s *mgo.Session, config Configuration, logFile string) *Controller {
@@ -50,10 +98,7 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	u := models.Post{}
 
 	// Populate the post data
-	fmt.Print(r.Body)
-	//log.Debug("r.Body = %s   ", r.Body)
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
-		fmt.Errorf("decode request body failed")
 		log.Error("decode request body failed")
 	}
 
@@ -79,24 +124,53 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 
 	// store file, video, audio, and images into MongoDB
 	if u.Type == "file" || u.Type == "video" || u.Type == "image" {
+
 		saveFileToMongo(u, uc)
+
 	}
 
-	// Index files("doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub") to Elasticsearch
-	if u.Type == "pdf" { //to be updated  2016.1.2
-		log.Trace(" Index files into Elasticsearch, method : %s", r.Method)
-		inputFile, handler, err := r.FormFile("filename")
+	// Index files to Elasticsearch
+	if u.Type == "file" { //to be updated  2016.1.2
+		log.Debug(" Index files into Elasticsearch, method : %s", r.Method)
+		log.Trace("u.Content.Link = %s ", u.Content.Link)
+
+		file := "/Users/huazhang/git/channel-service/test/test.txt"
+
+		f, err := os.Open(file)
 		if err != nil {
-			log.Error("err : %s", err)
+			//log.Error("err : %v", err)
+			panic(err)
 		}
-		log.Trace("handler.Header %s", handler.Header)
 
 		// Create io.Writer
-		outText := &bytes.Buffer{}
+		ws := &bytes.Buffer{}
 
-		middlewares.DocToText(inputFile, outText, uc.logFile)
+		//DocToText(f, ws)
+		middlewares.DocToText(f, ws, uc.logFile)
+		log.Trace("ws.String() = %s", ws.String())
+		fmt.Println(ws.String())
+		// assert.NoError(t, err)
+		// assert.True(t, ws.Len() > 0)
+		middlewares.ImportTextElastic(ws.String(), uc.config.Elasticsearch, uc.logFile)
 
-		middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)
+		/*
+			inputFile, err := os.Open(u.Content.Link)
+			//	inputFile, handler, err := r.FormFile("filename")
+			if err != nil {
+				log.Error("err : %s", err)
+			}
+
+			// log.debug("handler.Header %s", handler.Header)
+
+			// Create io.Writer
+			outText := &bytes.Buffer{}
+
+			// use tika to convert "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "epub" to text
+			//middlewares.DocToText(inputFile, outText, uc.logFile)
+			DocToText(inputFile, outText)
+
+			// index text into Elasticsearch
+			middlewares.ImportTextElastic(outText.String(), uc.config.Elasticsearch, uc.logFile)*/
 
 	}
 
@@ -113,10 +187,41 @@ func (uc Controller) CreatePost(w http.ResponseWriter, r *http.Request, p httpro
 	//log.Trace(w, "%s", uj)
 }
 
-// Store file into MongoDB via mgo
+// Convert document to plain text
+func DocToText(in io.Reader, out io.Writer) error {
+
+	cmd := exec.Command("java", "-jar", "./lib/tika-app-1.7.jar", "-t")
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdin = in
+	cmd.Stdout = out
+	cmd.Stderr = stderr
+
+	cmd.Start()
+	cmdDone := make(chan error, 1)
+	go func() {
+		cmdDone <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(time.Duration(500000) * time.Millisecond):
+		if err := cmd.Process.Kill(); err != nil {
+			return errors.New(err.Error())
+		}
+		<-cmdDone
+		return errors.New("Command timed out")
+	case err := <-cmdDone:
+		if err != nil {
+			return errors.New(stderr.String())
+		}
+	}
+
+	return nil
+}
+
+// Store file, video, audio, and images into MongoDB via mgo
 func saveFileToMongo(u models.Post, uc Controller) {
 	log.SetLogger("file", uc.logFile)
-	log.Trace(" store file into MongoDB : %s ", uc.config.Database)
+	log.Trace("store file into MongoDB : %s ", uc.config.Database)
 
 	// Specify the Mongodb database
 	db := uc.session.DB(uc.config.Database)
@@ -228,7 +333,7 @@ func (uc Controller) GetPost(w http.ResponseWriter, r *http.Request, p httproute
 	queryForm, err := url.ParseQuery(r.URL.RawQuery)
 
 	if err == nil && len(queryForm["limit"]) > 0 {
-		fmt.Fprintln(w, queryForm["limit"])
+		//fmt.Fprintln(w, queryForm["limit"])
 		limit, err := strconv.Atoi(queryForm["limit"][0])
 		if err != nil {
 			log.Error("err : %s", err)
@@ -237,7 +342,7 @@ func (uc Controller) GetPost(w http.ResponseWriter, r *http.Request, p httproute
 	}
 
 	if err == nil && len(queryForm["offset"]) > 0 {
-		fmt.Fprintln(w, queryForm["offset"])
+		//fmt.Fprintln(w, queryForm["offset"])
 		offset, err := strconv.Atoi(queryForm["offset"][0])
 		if err != nil {
 			log.Error("err : %s", err)
@@ -246,7 +351,7 @@ func (uc Controller) GetPost(w http.ResponseWriter, r *http.Request, p httproute
 	}
 
 	if err == nil && len(queryForm["q"]) > 0 {
-		fmt.Fprintln(w, queryForm["q"])
+		//fmt.Fprintln(w, queryForm["q"])
 		q = queryForm["q"][0]
 	}
 
@@ -260,21 +365,72 @@ func (uc Controller) GetPost(w http.ResponseWriter, r *http.Request, p httproute
 		Index(testIndexName).
 		Query(&queryStringQuery).
 		Sort("id", true).         // sort by "user" field, ascending
-		From(offset).Size(limit). // take documents 0-9
+		From(offset).Size(limit). // take documents 0-9 if offset =0, limit = 10
 		Pretty(true).             // pretty print request and response JSON
 		//Suggester(ts).
 		Do()
 	if err != nil {
+		// Handle error
 		log.Error("err : %s", err)
 	}
 
-	// Marshal provided interface into JSON structure
-	uj, _ := json.Marshal(searchResult)
+	/*var post models.Post
+	for _, item := range searchResult.Each(reflect.TypeOf(post)) {
+		t := item.(models.Post)
+		fmt.Printf("Post by %d : %s \n", t.UserId, t.Content.TextMessage)
+	}*/
 
+	if searchResult.Hits != nil {
+		log.Trace("Found a total of %d posts", searchResult.Hits.TotalHits)
+
+		// Iterate through results
+		for _, hit := range searchResult.Hits.Hits {
+			// hit.Index contains the name of the index
+			//Deserialize hit.Source into a Post
+			var t models.Post
+			err := json.Unmarshal(*hit.Source, &t)
+			if err != nil {
+				log.Error("Deserialization searchResult failed")
+			}
+			// work with post
+			log.Trace("Post by %d: %s\n", t.UserId, t.Content.TextMessage)
+			//w.Write(t)
+			json.NewEncoder(w).Encode(t)
+		}
+	} else {
+		// No hits
+		log.Trace("Found no posts\n")
+	}
+
+	/*
+		// Marshal provided interface into JSON structure
+		uj, _ := json.Marshal(searchResult)
+
+		w.Write([]byte(searchResult))
+
+		var titles []ElasticResult
+		log.Trace("uj = %s \n", uj)
+
+		// titles, err := json.Marshal(searchResult)
+		//     log.Trace("titles = %s\n", titles)
+		if err := json.Unmarshal(uj, &titles); err != nil {
+			log.Trace("titles = %v\n", titles)
+			//w.Write(titles)
+		}
+		log.Trace("err = %v\n", err)
+
+		// retval := models.Post{}
+		//     if err := json.Unmarshal(uj, &retval); err != nil {
+		//         w.Write(retval)
+		//         return nil, err
+		//         }
+
+	*/
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	fmt.Fprintf(w, "%s", uj)
+	//fmt.Fprintf(w, "%s", uj)
+
 }
 
 // Get total count of the posts

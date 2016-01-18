@@ -1,4 +1,7 @@
-#Insert a new text passage post  
+#!/bin/sh
+ 
+
+# 1. Insert a new text passage post  
 
 curl -XPOST -H 'Content-Type: application/json' -d \
  '{"user-id": 201,
@@ -8,7 +11,7 @@ curl -XPOST -H 'Content-Type: application/json' -d \
          "text-message" : "Honey Roasted Peanuts"
     },
     "created-at": "Nov 25 16:00:51 PST 2015"
-}' -v   http://channel-service.www.abovegem.com:11442/v1/posts
+}'   http://channel-service.www.abovegem.com:11442/v1/posts
 
 #2. create a new image post, and store image into Mongodb
 curl -XPOST -H 'Content-Type: application/json' -d \
@@ -23,7 +26,7 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 		"comment": "cartoon style"
 	},
 	"created-at": "Dec 25 16:00:51 PST 2015"
-}' -v   http://channel-service.www.abovegem.com:11442/v1/posts
+}'  http://channel-service.www.abovegem.com:11442/v1/posts
 
 
 curl -XPOST -H 'Content-Type: application/json' -d \
@@ -43,7 +46,8 @@ curl -XPOST -H 'Content-Type: application/json' -d \
 
 
 #3. Query the total acount of the posts
-curl -H "Content-Type: application/json" -X GET -v http://channel-service.www.abovegem.com:11442/v1/posts/count
+curl -H "Content-Type: application/json" -X GET \
+     http://channel-service.www.abovegem.com:11442/v1/posts/count
 
 
 curl -XGET -H 'Content-Type: application/json' http://127.0.0.1:9200/postindex/?pretty=true
@@ -67,8 +71,15 @@ curl \
 # Query the total acount of the posts
 curl -H "Content-Type: application/json" -X GET -v http://channel-service.www.abovegem.com:11442/v1/posts/count
 
+
+# Query a text passage post
+curl -XGET -H 'Content-Type: application/json'  http://channel-service.www.abovegem.com:11442/v1/posts?limit=1&offset=0
+
 # Query the posts with a filter string
-curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/?q=user-id:101'
+curl -XGET -H 'Content-Type: application/json'  http://channel-service.www.abovegem.com:11442/v1/posts?limit=10&offset=2&q="mongodb"
+
+
+curl  -XGET -H 'Content-Type: application/json'  'http://channel-service.www.abovegem.com:11442/v1/posts/?q=user-id:101'
 
 curl -XGET 'http://channel-service.www.abovegem.com:11442/v1/posts/?limit=10&q=user-id:101'
 
